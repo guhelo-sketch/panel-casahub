@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Panel del día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+  :root {
+    --board: #26332C;
+    --board-2: #2e3d33;
+    --line: rgba(241,236,221,0.10);
+    --cream: #F1ECDD;
+    --cream-dim: #ABB6A2;
+    --mustard: #E8B54D;
+    --sage: #DCE6D6;
+    --sky: #D9E8F0;
+    --ink: #2b2210;
+    --ink-dim: rgba(43,34,16,0.55);
+    --brick: #C2694B;
+    --brick-paper: #F3D9C9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #141915;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+
+  body { display: flex; align-items: center; justify-content: center; }
+
+  .device {
+    width: min(96vw, 1000px);
+    height: min(90vh, 470px);
+    aspect-ratio: 19.5 / 9;
+    background:
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    border-radius: 22px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.55);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    transition: filter 0.6s ease;
+  }
+
+  .device.night { filter: brightness(0.42) saturate(0.65); }
+
+  .status {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: var(--cream-dim);
+    letter-spacing: 0.04em;
+  }
+  .status .dot-live {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #8FBF8A;
+    box-shadow: 0 0 0 2px rgba(143,191,138,0.18);
+  }
+
+  .night-toggle {
+    position: absolute;
+    top: 12px;
+    left: 26px;
+    font-size: 9px;
+    color: var(--cream-dim);
+    opacity: 0.5;
+    z-index: 30;
+    cursor: pointer;
+  }
+
+  .postit {
+    position: relative;
+    border-radius: 4px;
+    box-shadow: 3px 7px 16px rgba(0,0,0,0.35);
+    color: var(--ink);
+  }
+  .postit::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 42px;
+    height: 16px;
+    background: rgba(241,236,221,0.55);
+  }
+
+  .top-row {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    padding-top: 2px;
+  }
+
+  .weather-note {
+    background: var(--sky);
+    width: 44%;
+    padding: 12px 15px 10px;
+    transform: rotate(-1.3deg);
+  }
+
+  .weather-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .weather-icon-big { font-size: 32px; line-height: 1; }
+  .weather-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1;
+  }
+  .weather-cond {
+    font-size: 10.5px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .weather-feels {
+    margin-left: auto;
+    text-align: right;
+    font-size: 9.5px;
+    color: var(--ink-dim);
+    line-height: 1.3;
+  }
+  .weather-feels b { color: var(--ink); font-size: 12px; }
+
+  .forecast-strip {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+  }
+  .forecast-chip { text-align: center; flex: 1; }
+  .forecast-chip .day {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ink-dim);
+    font-weight: 600;
+  }
+  .forecast-chip .ic { font-size: 15px; margin: 3px 0; }
+  .forecast-chip .range {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .forecast-chip .range .lo { color: var(--ink-dim); font-weight: 400; }
+
+  .clock-note {
+    background: var(--cream);
+    width: 34%;
+    margin-left: auto;
+    padding: 10px 16px 11px;
+    transform: rotate(1.4deg);
+    text-align: center;
+  }
+
+  .weekday {
+    font-family: 'Kalam', cursive;
+    font-size: 15px;
+    color: #8a6a1f;
+  }
+  .fulldate {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-top: 1px;
+  }
+  .clock {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1;
+    margin-top: 3px;
+    letter-spacing: -0.01em;
+  }
+  .clock span { color: #b8862b; }
+
+  .phrase-line {
+    margin-top: 5px;
+    font-family: 'Kalam', cursive;
+    font-size: 10px;
+    color: var(--ink-dim);
+    line-height: 1.2;
+  }
+
+  .news-ribbon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(241,236,221,0.92);
+    border-radius: 3px;
+    padding: 5px 14px;
+    transform: rotate(-0.4deg);
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.25);
+  }
+  .news-tag {
+    font-family: 'Kalam', cursive;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brick);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .news-text {
+    font-size: 11px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.4s ease;
+  }
+
+  .note.radio-note {
+    background: var(--sky);
+    transform: rotate(1.5deg);
+  }
+  .note.radio-note.playing {
+    background: var(--mustard);
+  }
+  .radio-station-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(43,34,16,0.06);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .radio-station-btn.playing {
+    background: var(--mustard);
+  }
+  .radio-stop-btn {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+
+  .pending-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Kalam', cursive;
+    font-size: 12px;
+    color: var(--cream);
+  }
+
+  .notes-row {
+    flex: 1;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 3px 2px 4px;
+  }
+  .notes-row::-webkit-scrollbar { display: none; }
+
+  .note {
+    background: var(--mustard);
+    width: 140px;
+    min-height: 78px;
+    flex-shrink: 0;
+    padding: 10px 11px 8px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    border-radius: 4px;
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.3);
+  }
+  .note:active { transform: scale(0.97) rotate(0deg) !important; }
+
+  .note:nth-child(1) { transform: rotate(-2.5deg); background: var(--mustard); }
+  .note:nth-child(2) { transform: rotate(1.8deg); background: var(--cream); }
+  .note:nth-child(3) { transform: rotate(-1.2deg); background: var(--sage); }
+  .note:nth-child(4) { transform: rotate(2.2deg); background: var(--mustard); }
+  .note.alert-note { background: var(--brick-paper); transform: rotate(-1.6deg); }
+
+  .note-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9.5px;
+    font-weight: 600;
+    opacity: 0.6;
+    letter-spacing: 0.03em;
+  }
+  .note-title {
+    font-family: 'Kalam', cursive;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 3px;
+    line-height: 1.15;
+  }
+  .note-who {
+    font-size: 9px;
+    opacity: 0.55;
+    margin-top: 6px;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20,25,21,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    z-index: 20;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .detail-sheet {
+    background: var(--cream);
+    width: 320px;
+    border-radius: 10px;
+    padding: 22px 22px 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    transform: translateY(14px) scale(0.97);
+    transition: transform 0.22s ease;
+  }
+  .overlay.show .detail-sheet { transform: translateY(0) scale(1); }
+
+  .detail-cat {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(43,34,16,0.08);
+  }
+  .detail-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+  .detail-title {
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    margin-top: 5px;
+  }
+  .detail-desc {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+  .detail-who {
+    margin-top: 14px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .detail-close {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cream);
+    background: var(--ink);
+    border-radius: 30px;
+    padding: 10px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="device" id="device">
+
+  <div class="status"><div class="dot-live"></div>Wi-Fi conectado</div>
+  <div class="night-toggle" id="nightToggle">noche (demo)</div>
+
+  <div class="top-row">
+    <div class="weather-note postit">
+      <div class="weather-top">
+        <div class="weather-icon-big" id="w-icon-now">⛅</div>
+        <div>
+          <div class="weather-temp" id="w-temp-now">--°</div>
+          <div class="weather-cond" id="w-cond-now">Cargando...</div>
+        </div>
+        <div class="weather-feels">
+          Sensación<br><b id="w-feels">--°</b>
+        </div>
+      </div>
+
+      <div class="forecast-strip" id="forecast-strip">
+        <div class="forecast-chip">
+          <div class="day">Hoy</div>
+          <div class="ic" id="f0-ic">⛅</div>
+          <div class="range" id="f0-range">--° <span class="lo">--°</span></div>
+        </div>
+        <div class="forecast-chip">
+          <div class="day" id="f1-day">--</div>
+          <div class="ic" id="f1-ic">⛅</div>
+          <div class="range" id="f1-range">--° <span class="lo">--°</span></div>
+        </div>
+        <div class="forecast-chip">
+          <div class="day" id="f2-day">--</div>
+          <div class="ic" id="f2-ic">⛅</div>
+          <div class="range" id="f2-range">--° <span class="lo">--°</span></div>
+        </div>
+        <div class="forecast-chip">
+          <div class="day" id="f3-day">--</div>
+          <div class="ic" id="f3-ic">⛅</div>
+          <div class="range" id="f3-range">--° <span class="lo">--°</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="clock-note postit">
+      <div class="weekday" id="weekday">jueves</div>
+      <div class="fulldate" id="fulldate">6 de agosto</div>
+      <div class="clock" id="clock">14<span>:32</span></div>
+      <div class="phrase-line">📌 "Un mate a tiempo es una tarde salvada."</div>
+    </div>
+  </div>
+
+  <div class="news-ribbon">
+    <span class="news-tag">📰 Último momento</span>
+    <span class="news-text" id="newsText">Cargando titulares...</span>
+  </div>
+
+  <div class="pending-label">📋 Pendientes de hoy</div>
+
+  <div class="notes-row" id="notes">
+    <div class="note" data-cat="Colegio" data-time="16:30" data-title="Buscar a Lorenzo" data-desc="Salida de colegio. Hoy toca buscarlo porque tiene turno con el dentista a las 17:15." data-who="Asignado a Gustavo">
+      <div class="note-time">16:30</div>
+      <div class="note-title">Buscar a Lorenzo</div>
+      <div class="note-who">Colegio</div>
+    </div>
+
+    <div class="note" data-cat="Salud" data-time="17:15" data-title="Dentista Lorenzo" data-desc="Control de rutina, Dr. Alonso. Llevar la orden y el carnet de la obra social." data-who="Asignado a Perla">
+      <div class="note-time">17:15</div>
+      <div class="note-title">Dentista Lorenzo</div>
+      <div class="note-who">Salud</div>
+    </div>
+
+    <div class="note" data-cat="Finanzas" data-time="Hoy" data-title="Super con descuento" data-desc="Descuento 25% en Carrefour con tarjeta hasta las 20 hs. Falta leche, pan y detergente." data-who="Lista compartida">
+      <div class="note-time">Hoy</div>
+      <div class="note-title">Super con descuento</div>
+      <div class="note-who">Finanzas</div>
+    </div>
+
+    <div class="note" data-cat="Finanzas" data-time="Vence hoy" data-title="Pagar Edenor" data-desc="Vence la factura de Edenor. Pagar por home banking antes de las 23:59 para evitar recargo." data-who="Asignado a Gustavo">
+      <div class="note-time">Vence hoy</div>
+      <div class="note-title">Pagar Edenor</div>
+      <div class="note-who">Finanzas</div>
+    </div>
+
+    <div class="note radio-note" id="radioNoteBtn">
+      <div class="note-time">Radio</div>
+      <div class="note-title">📻 Mega 98.3</div>
+      <div class="note-who" id="radioNoteStatus">Tocá para escuchar</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="detail-sheet">
+      <div class="detail-cat" id="d-cat">Colegio</div>
+      <div class="detail-time" id="d-time">16:30</div>
+      <div class="detail-title" id="d-title">Buscar a Lorenzo</div>
+      <div class="detail-desc" id="d-desc">Descripción</div>
+      <div class="detail-who" id="d-who">Asignado a</div>
+      <div class="detail-close" id="d-close">Cerrar</div>
+    </div>
+  </div>
+
+  <audio id="radioAudio"></audio>
+
+</div>
+
+<script>
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  const weekdays = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function tick(){
+    const now = new Date();
+    document.getElementById('weekday').textContent = weekdays[now.getDay()];
+    document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
+    document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
+  }
+  tick();
+  setInterval(tick, 1000 * 10);
+
+  const overlay = document.getElementById('overlay');
+  document.getElementById('notes').addEventListener('click', (e) => {
+    const note = e.target.closest('.note');
+    if(!note || note.id === 'radioNoteBtn') return;
+    document.getElementById('d-cat').textContent = note.dataset.cat;
+    document.getElementById('d-time').textContent = note.dataset.time;
+    document.getElementById('d-title').textContent = note.dataset.title;
+    document.getElementById('d-desc').textContent = note.dataset.desc;
+    document.getElementById('d-who').textContent = note.dataset.who;
+    overlay.classList.add('show');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if(e.target === overlay || e.target.id === 'd-close'){
+      overlay.classList.remove('show');
+    }
+  });
+
+  document.getElementById('nightToggle').addEventListener('click', () => {
+    document.getElementById('device').classList.toggle('night');
+  });
+
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+
+  const LAT = -34.5461;
+  const LON = -58.5580;
+  const weekShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  function weatherInfo(code) {
+    if (code === 0) return { ic: '☀️', txt: 'Despejado' };
+    if (code === 1 || code === 2) return { ic: '⛅', txt: 'Parcialmente nublado' };
+    if (code === 3) return { ic: '☁️', txt: 'Nublado' };
+    if (code === 45 || code === 48) return { ic: '🌫️', txt: 'Niebla' };
+    if ([51,53,55,56,57].includes(code)) return { ic: '🌦️', txt: 'Llovizna' };
+    if ([61,63,65,66,67].includes(code)) return { ic: '🌧️', txt: 'Lluvia' };
+    if ([71,73,75,77].includes(code)) return { ic: '❄️', txt: 'Nieve' };
+    if ([80,81,82].includes(code)) return { ic: '🌦️', txt: 'Chubascos' };
+    if ([95,96,99].includes(code)) return { ic: '⛈️', txt: 'Tormenta' };
+    return { ic: '⛅', txt: 'Variable' };
+  }
+
+  async function loadWeather() {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const nowInfo = weatherInfo(data.current.weather_code);
+      document.getElementById('w-icon-now').textContent = nowInfo.ic;
+      document.getElementById('w-temp-now').textContent = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('w-cond-now').textContent = nowInfo.txt;
+      document.getElementById('w-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+
+      const days = data.daily.time;
+      const codes = data.daily.weather_code;
+      const maxs = data.daily.temperature_2m_max;
+      const mins = data.daily.temperature_2m_min;
+
+      const info0 = weatherInfo(codes[0]);
+      document.getElementById('f0-ic').textContent = info0.ic;
+      document.getElementById('f0-range').innerHTML = Math.round(maxs[0]) + '° <span class="lo">' + Math.round(mins[0]) + '°</span>';
+
+      for (let i = 1; i <= 3; i++) {
+        const info = weatherInfo(codes[i]);
+        const d = new Date(days[i] + 'T00:00:00');
+        document.getElementById('f' + i + '-day').textContent = weekShort[d.getDay()];
+        document.getElementById('f' + i + '-ic').textContent = info.ic;
+        document.getElementById('f' + i + '-range').innerHTML = Math.round(maxs[i]) + '° <span class="lo">' + Math.round(mins[i]) + '°</span>';
+      }
+    } catch (err) {
+      document.getElementById('w-cond-now').textContent = 'Sin conexión';
+    }
+  }
+
+  loadWeather();
+  setInterval(loadWeather, 1000 * 60 * 30);
+
+  // ---- noticias: titulares rotando vía rss2json (sin API key, uso liviano) ----
+  let newsHeadlines = [];
+  let newsIndex = 0;
+
+  async function tryFetchNews(url) {
+    const res = await fetch(url);
+    const text = await res.text();
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const titles = Array.from(xml.querySelectorAll('item > title')).map(t => t.textContent.trim());
+    return titles;
+  }
+
+  async function loadNews() {
+    const feedUrl = 'https://www.infobae.com/feeds/rss/';
+    const proxies = [
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl),
+      'https://corsproxy.io/?url=' + encodeURIComponent(feedUrl),
+      feedUrl // por si el feed ya permite CORS directo
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const titles = await tryFetchNews(proxyUrl);
+        if (titles.length) {
+          newsHeadlines = titles.slice(0, 8);
+          newsIndex = 0;
+          showNextHeadline();
+          return;
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+    document.getElementById('newsText').textContent = 'Sin conexión a noticias';
+  }
+
+  function showNextHeadline() {
+    if (!newsHeadlines.length) return;
+    const el = document.getElementById('newsText');
+    el.style.opacity = 0;
+    setTimeout(() => {
+      el.textContent = newsHeadlines[newsIndex % newsHeadlines.length];
+      newsIndex++;
+      el.style.opacity = 1;
+    }, 400);
+  }
+
+  loadNews();
+  setInterval(showNextHeadline, 1000 * 60 * 3); // rota el titular cada 3 min
+  setInterval(loadNews, 1000 * 60 * 20); // pide titulares nuevos cada 20 min
+
+  // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
+  const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
+  let hlsInstance = null;
+  let radioPlaying = false;
+  const radioAudio = document.getElementById('radioAudio');
+
+  function playMega() {
+    if (window.Hls && Hls.isSupported()) {
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(MEGA_URL);
+      hlsInstance.attachMedia(radioAudio);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => radioAudio.play().catch(() => {}));
+    } else {
+      radioAudio.src = MEGA_URL;
+      radioAudio.play().catch(() => {});
+    }
+    radioPlaying = true;
+    document.getElementById('radioNoteStatus').textContent = '▶️ Sonando';
+    document.getElementById('radioNoteBtn').classList.add('playing');
+  }
+
+  function stopMega() {
+    radioAudio.pause();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    radioPlaying = false;
+    document.getElementById('radioNoteStatus').textContent = 'Tocá para escuchar';
+    document.getElementById('radioNoteBtn').classList.remove('playing');
+  }
+
+  document.getElementById('radioNoteBtn').addEventListener('click', () => {
+    if (radioPlaying) stopMega(); else playMega();
+  });
+</script>
+
+</body>
+</html>
