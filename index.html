@@ -483,28 +483,10 @@
   <div class="pending-label">📋 Pendientes de hoy</div>
 
   <div class="notes-row" id="notes">
-    <div class="note" data-cat="Colegio" data-time="16:30" data-title="Buscar a Lorenzo" data-desc="Salida de colegio. Hoy toca buscarlo porque tiene turno con el dentista a las 17:15." data-who="Asignado a Gustavo">
-      <div class="note-time">16:30</div>
-      <div class="note-title">Buscar a Lorenzo</div>
-      <div class="note-who">Colegio</div>
-    </div>
-
-    <div class="note" data-cat="Salud" data-time="17:15" data-title="Dentista Lorenzo" data-desc="Control de rutina, Dr. Alonso. Llevar la orden y el carnet de la obra social." data-who="Asignado a Perla">
-      <div class="note-time">17:15</div>
-      <div class="note-title">Dentista Lorenzo</div>
-      <div class="note-who">Salud</div>
-    </div>
-
-    <div class="note" data-cat="Finanzas" data-time="Hoy" data-title="Super con descuento" data-desc="Descuento 25% en Carrefour con tarjeta hasta las 20 hs. Falta leche, pan y detergente." data-who="Lista compartida">
-      <div class="note-time">Hoy</div>
-      <div class="note-title">Super con descuento</div>
-      <div class="note-who">Finanzas</div>
-    </div>
-
-    <div class="note" data-cat="Finanzas" data-time="Vence hoy" data-title="Pagar Edenor" data-desc="Vence la factura de Edenor. Pagar por home banking antes de las 23:59 para evitar recargo." data-who="Asignado a Gustavo">
-      <div class="note-time">Vence hoy</div>
-      <div class="note-title">Pagar Edenor</div>
-      <div class="note-who">Finanzas</div>
+    <div class="note" id="pendingLoading" style="background: var(--cream);">
+      <div class="note-time">···</div>
+      <div class="note-title">Cargando</div>
+      <div class="note-who">CasaHub</div>
     </div>
 
     <div class="note" id="trainNoteBtn" style="background: var(--sage); transform: rotate(-1.8deg);">
@@ -742,6 +724,75 @@
 
   loadTrainStatus();
   setInterval(loadTrainStatus, 1000 * 60 * 15); // revisa cada 15 min
+
+  // ---- pendientes de hoy: datos reales de CasaHub vía Cloud Function ----
+  // Reemplazá esta URL por la que te da Firebase al deployar getTodayItems
+  const CASAHUB_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getTodayItems';
+
+  const typeStyle = {
+    activity: { tab: 'sky', cat: 'Actividad' },
+    reminder: { tab: 'mustard', cat: 'Finanzas' },
+    discount: { tab: 'sage', cat: 'Finanzas' }
+  };
+
+  function buildPendingNote(item, index) {
+    const style = typeStyle[item.type] || typeStyle.activity;
+    const note = document.createElement('div');
+    note.className = 'note';
+    note.dataset.cat = style.cat;
+    note.dataset.time = item.time;
+    note.dataset.title = item.title;
+    note.dataset.desc = item.desc || `${item.title}${item.who ? ' — ' + item.who : ''}`;
+    note.dataset.who = item.who ? `Para: ${item.who}` : style.cat;
+
+    const rotations = ['-2.5deg', '1.8deg', '-1.2deg', '2.2deg'];
+    const bgs = ['var(--mustard)', 'var(--cream)', 'var(--sage)', 'var(--mustard)'];
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+    note.style.background = bgs[index % bgs.length];
+
+    note.innerHTML = `
+      <div class="note-time">${item.time}</div>
+      <div class="note-title">${item.title}</div>
+      <div class="note-who">${item.who || style.cat}</div>
+    `;
+    return note;
+  }
+
+  async function loadPendingToday() {
+    const loadingNote = document.getElementById('pendingLoading');
+    try {
+      const res = await fetch(CASAHUB_FUNCTION_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const items = data.items || [];
+
+      if (loadingNote) loadingNote.remove();
+
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'note';
+        empty.style.background = 'var(--cream)';
+        empty.innerHTML = `<div class="note-time">Hoy</div><div class="note-title">Nada pendiente 🎉</div><div class="note-who">CasaHub</div>`;
+        document.getElementById('notes').insertBefore(empty, document.getElementById('trainNoteBtn'));
+        return;
+      }
+
+      const trainNote = document.getElementById('trainNoteBtn');
+      items.forEach((item, i) => {
+        const note = buildPendingNote(item, i);
+        document.getElementById('notes').insertBefore(note, trainNote);
+      });
+    } catch (err) {
+      console.warn('No se pudo cargar CasaHub:', err.message);
+      if (loadingNote) {
+        loadingNote.querySelector('.note-title').textContent = 'Sin conexión';
+        loadingNote.querySelector('.note-who').textContent = 'CasaHub';
+      }
+    }
+  }
+
+  loadPendingToday();
+  setInterval(loadPendingToday, 1000 * 60 * 10); // refresca cada 10 min
 
   // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
   const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
