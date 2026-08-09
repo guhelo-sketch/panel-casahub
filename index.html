@@ -101,9 +101,43 @@
 
   .top-row {
     display: flex;
-    gap: 18px;
-    align-items: flex-start;
+    justify-content: space-between;
+    align-items: center;
     padding-top: 2px;
+  }
+
+  .radio-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: var(--sky);
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.3);
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .radio-mini:active { transform: scale(0.94); }
+  .radio-mini.playing {
+    background: var(--mustard);
+    animation: radioPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes radioPulse {
+    0%, 100% { box-shadow: 3px 6px 14px rgba(0,0,0,0.3), 0 0 0 0 rgba(232,181,77,0.5); }
+    50% { box-shadow: 3px 6px 14px rgba(0,0,0,0.3), 0 0 0 8px rgba(232,181,77,0); }
+  }
+  .radio-mini .ic { font-size: 22px; line-height: 1; }
+  .radio-mini .lbl {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
   }
 
   .weather-note {
@@ -165,7 +199,6 @@
   .clock-note {
     background: var(--cream);
     width: 34%;
-    margin-left: auto;
     padding: 10px 16px 11px;
     transform: rotate(1.4deg);
     text-align: center;
@@ -204,6 +237,7 @@
   .news-ribbon {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     background: rgba(241,236,221,0.92);
     border-radius: 3px;
@@ -228,13 +262,6 @@
     transition: opacity 0.4s ease;
   }
 
-  .note.radio-note {
-    background: var(--sky);
-    transform: rotate(1.5deg);
-  }
-  .note.radio-note.playing {
-    background: var(--mustard);
-  }
   .radio-station-btn {
     display: block;
     width: 100%;
@@ -435,6 +462,11 @@
       </div>
     </div>
 
+    <div class="radio-mini" id="radioNoteBtn">
+      <div class="ic" id="radioMiniIcon">📻</div>
+      <div class="lbl">MEGA</div>
+    </div>
+
     <div class="clock-note postit">
       <div class="weekday" id="weekday">jueves</div>
       <div class="fulldate" id="fulldate">6 de agosto</div>
@@ -473,12 +505,6 @@
       <div class="note-time">Vence hoy</div>
       <div class="note-title">Pagar Edenor</div>
       <div class="note-who">Finanzas</div>
-    </div>
-
-    <div class="note radio-note" id="radioNoteBtn">
-      <div class="note-time">Radio</div>
-      <div class="note-title">📻 Mega 98.3</div>
-      <div class="note-who" id="radioNoteStatus">Tocá para escuchar</div>
     </div>
 
     <div class="note" id="trainNoteBtn" style="background: var(--sage); transform: rotate(-1.8deg);">
@@ -647,9 +673,15 @@
   let trainDetailText = 'Sin datos por ahora.';
 
   async function tryFetchTrain(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.text();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async function loadTrainStatus() {
@@ -728,7 +760,7 @@
       radioAudio.play().catch(() => {});
     }
     radioPlaying = true;
-    document.getElementById('radioNoteStatus').textContent = '▶️ Sonando';
+    document.getElementById('radioMiniIcon').textContent = '⏸';
     document.getElementById('radioNoteBtn').classList.add('playing');
   }
 
@@ -736,7 +768,7 @@
     radioAudio.pause();
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     radioPlaying = false;
-    document.getElementById('radioNoteStatus').textContent = 'Tocá para escuchar';
+    document.getElementById('radioMiniIcon').textContent = '📻';
     document.getElementById('radioNoteBtn').classList.remove('playing');
   }
 
