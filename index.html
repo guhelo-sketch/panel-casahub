@@ -444,8 +444,8 @@
   </div>
 
   <div class="news-ribbon">
-    <span class="news-tag">📰 Último momento</span>
-    <span class="news-text" id="newsText">Cargando titulares...</span>
+    <span class="news-tag">💵 Dólar hoy</span>
+    <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
   <div class="pending-label">📋 Pendientes de hoy</div>
@@ -479,6 +479,12 @@
       <div class="note-time">Radio</div>
       <div class="note-title">📻 Mega 98.3</div>
       <div class="note-who" id="radioNoteStatus">Tocá para escuchar</div>
+    </div>
+
+    <div class="note" id="trainNoteBtn" style="background: var(--sage); transform: rotate(-1.8deg);">
+      <div class="note-time">Tren</div>
+      <div class="note-title">🚆 Mitre</div>
+      <div class="note-who">Ver estado oficial</div>
     </div>
   </div>
 
@@ -591,57 +597,56 @@
   setInterval(loadWeather, 1000 * 60 * 30);
 
   // ---- noticias: titulares rotando vía rss2json (sin API key, uso liviano) ----
-  let newsHeadlines = [];
-  let newsIndex = 0;
+  // ---- dólar: cotizaciones en vivo vía dolarapi.com, sin key, hecha para esto ----
+  let dolarItems = [];
+  let dolarIndex = 0;
+  const dolarLabels = {
+    oficial: 'Oficial',
+    blue: 'Blue',
+    bolsa: 'MEP',
+    contadoconliqui: 'CCL',
+    tarjeta: 'Tarjeta',
+    mayorista: 'Mayorista',
+    cripto: 'Cripto'
+  };
+  const dolarOrder = ['oficial', 'blue', 'bolsa', 'contadoconliqui'];
 
-  async function tryFetchNews(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text, 'text/xml');
-    const titles = Array.from(xml.querySelectorAll('item > title')).map(t => t.textContent.trim());
-    if (!titles.length) throw new Error('Sin items válidos');
-    return titles;
-  }
-
-  async function loadNews() {
-    const feedUrl = 'https://www.infobae.com/arc/outboundfeeds/rss/';
-    const proxies = [
-      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(feedUrl),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl),
-      'https://corsproxy.io/?url=' + encodeURIComponent(feedUrl),
-      feedUrl
-    ];
-
-    for (const proxyUrl of proxies) {
-      try {
-        const titles = await tryFetchNews(proxyUrl);
-        newsHeadlines = titles.slice(0, 8);
-        newsIndex = 0;
-        showNextHeadline();
-        return;
-      } catch (err) {
-        console.warn('Proxy de noticias falló:', proxyUrl, err.message);
-        continue;
+  async function loadDolar() {
+    try {
+      const res = await fetch('https://dolarapi.com/v1/dolares');
+      const data = await res.json();
+      dolarItems = dolarOrder
+        .map(tipo => data.find(d => d.casa === tipo))
+        .filter(Boolean)
+        .map(d => `${dolarLabels[d.casa]}: compra $${Math.round(d.compra)} · venta $${Math.round(d.venta)}`);
+      if (dolarItems.length) {
+        dolarIndex = 0;
+        showNextDolar();
       }
+    } catch (err) {
+      document.getElementById('newsText').textContent = 'Sin conexión al dólar';
     }
-    document.getElementById('newsText').textContent = 'Sin conexión a noticias';
   }
 
-  function showNextHeadline() {
-    if (!newsHeadlines.length) return;
+  function showNextDolar() {
+    if (!dolarItems.length) return;
     const el = document.getElementById('newsText');
     el.style.opacity = 0;
     setTimeout(() => {
-      el.textContent = newsHeadlines[newsIndex % newsHeadlines.length];
-      newsIndex++;
+      el.textContent = dolarItems[dolarIndex % dolarItems.length];
+      dolarIndex++;
       el.style.opacity = 1;
     }, 400);
   }
 
-  loadNews();
-  setInterval(showNextHeadline, 1000 * 60 * 3); // rota el titular cada 3 min
-  setInterval(loadNews, 1000 * 60 * 20); // pide titulares nuevos cada 20 min
+  loadDolar();
+  setInterval(showNextDolar, 1000 * 60 * 3); // rota cada 3 min
+  setInterval(loadDolar, 1000 * 60 * 20); // refresca valores cada 20 min
+
+  // ---- tren mitre: abre la fuente oficial ----
+  document.getElementById('trainNoteBtn').addEventListener('click', () => {
+    window.open('https://www.argentina.gob.ar/transporte/trenes-argentinos/modificaciones-en-el-servicio-y-novedades', '_blank');
+  });
 
   // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
   const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
