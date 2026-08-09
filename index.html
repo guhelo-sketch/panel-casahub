@@ -596,30 +596,32 @@
 
   async function tryFetchNews(url) {
     const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     const xml = new DOMParser().parseFromString(text, 'text/xml');
     const titles = Array.from(xml.querySelectorAll('item > title')).map(t => t.textContent.trim());
+    if (!titles.length) throw new Error('Sin items válidos');
     return titles;
   }
 
   async function loadNews() {
     const feedUrl = 'https://www.infobae.com/feeds/rss/';
     const proxies = [
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(feedUrl),
       'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl),
       'https://corsproxy.io/?url=' + encodeURIComponent(feedUrl),
-      feedUrl // por si el feed ya permite CORS directo
+      feedUrl
     ];
 
     for (const proxyUrl of proxies) {
       try {
         const titles = await tryFetchNews(proxyUrl);
-        if (titles.length) {
-          newsHeadlines = titles.slice(0, 8);
-          newsIndex = 0;
-          showNextHeadline();
-          return;
-        }
+        newsHeadlines = titles.slice(0, 8);
+        newsIndex = 0;
+        showNextHeadline();
+        return;
       } catch (err) {
+        console.warn('Proxy de noticias falló:', proxyUrl, err.message);
         continue;
       }
     }
