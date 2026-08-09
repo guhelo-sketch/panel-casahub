@@ -299,8 +299,8 @@
   .notes-row {
     flex: 1;
     display: flex;
-    gap: 14px;
-    align-items: flex-start;
+    gap: 20px;
+    align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 3px 2px 4px;
@@ -309,14 +309,15 @@
 
   .note {
     background: var(--mustard);
-    width: 140px;
-    min-height: 78px;
-    flex-shrink: 0;
-    padding: 10px 11px 8px;
+    flex: 1 1 210px;
+    max-width: 210px;
+    min-width: 145px;
+    min-height: 150px;
+    padding: 18px 18px 14px;
     cursor: pointer;
     transition: transform 0.15s ease;
-    border-radius: 4px;
-    box-shadow: 3px 6px 14px rgba(0,0,0,0.3);
+    border-radius: 6px;
+    box-shadow: 4px 8px 18px rgba(0,0,0,0.3);
   }
   .note:active { transform: scale(0.97) rotate(0deg) !important; }
 
@@ -328,22 +329,22 @@
 
   .note-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 9.5px;
+    font-size: 14px;
     font-weight: 600;
     opacity: 0.6;
     letter-spacing: 0.03em;
   }
   .note-title {
     font-family: 'Kalam', cursive;
-    font-size: 14px;
+    font-size: 22px;
     font-weight: 700;
-    margin-top: 3px;
-    line-height: 1.15;
+    margin-top: 6px;
+    line-height: 1.2;
   }
   .note-who {
-    font-size: 9px;
+    font-size: 14px;
     opacity: 0.55;
-    margin-top: 6px;
+    margin-top: 10px;
   }
 
   .overlay {
@@ -545,6 +546,18 @@
   document.getElementById('nightToggle').addEventListener('click', () => {
     document.getElementById('device').classList.toggle('night');
   });
+
+  // ---- modo noche automático, sin tocar nada ----
+  const NIGHT_START_HOUR = 23; // se atenúa a partir de esta hora
+  const NIGHT_END_HOUR = 7;    // vuelve a brillo normal a partir de esta hora
+
+  function updateAutoNightMode() {
+    const hour = new Date().getHours();
+    const isNight = hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+    document.getElementById('device').classList.toggle('night', isNight);
+  }
+  updateAutoNightMode();
+  setInterval(updateAutoNightMode, 1000 * 60); // revisa cada minuto
 
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(() => {});
