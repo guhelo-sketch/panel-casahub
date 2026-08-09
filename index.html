@@ -750,7 +750,7 @@
   function buildPendingNote(item, index) {
     const style = typeStyle[item.type] || typeStyle.activity;
     const note = document.createElement('div');
-    note.className = 'note';
+    note.className = 'note dynamic-pending';
     note.dataset.cat = style.cat;
     note.dataset.time = item.time;
     note.dataset.title = item.title;
@@ -780,16 +780,20 @@
 
       if (loadingNote) loadingNote.remove();
 
+      // Borra las tarjetas que había puesto la vez anterior, antes de agregar las nuevas
+      document.querySelectorAll('.dynamic-pending').forEach((el) => el.remove());
+
+      const trainNote = document.getElementById('trainNoteBtn');
+
       if (!items.length) {
         const empty = document.createElement('div');
-        empty.className = 'note';
+        empty.className = 'note dynamic-pending';
         empty.style.background = 'var(--cream)';
         empty.innerHTML = `<div class="note-time">Hoy</div><div class="note-title">Nada pendiente 🎉</div><div class="note-who">CasaHub</div>`;
-        document.getElementById('notes').insertBefore(empty, document.getElementById('trainNoteBtn'));
+        document.getElementById('notes').insertBefore(empty, trainNote);
         return;
       }
 
-      const trainNote = document.getElementById('trainNoteBtn');
       items.forEach((item, i) => {
         const note = buildPendingNote(item, i);
         document.getElementById('notes').insertBefore(note, trainNote);
