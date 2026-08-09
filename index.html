@@ -483,8 +483,8 @@
 
     <div class="note" id="trainNoteBtn" style="background: var(--sage); transform: rotate(-1.8deg);">
       <div class="note-time">Tren</div>
-      <div class="note-title">🚆 Mitre</div>
-      <div class="note-who">Ver estado oficial</div>
+      <div class="note-title">🚆 Mitre <span id="trainDot">⚪</span></div>
+      <div class="note-who" id="trainStatus">Consultando...</div>
     </div>
   </div>
 
@@ -643,10 +643,73 @@
   setInterval(showNextDolar, 1000 * 60 * 3); // rota cada 3 min
   setInterval(loadDolar, 1000 * 60 * 20); // refresca valores cada 20 min
 
-  // ---- tren mitre: abre la fuente oficial ----
+  // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
+  let trainDetailText = 'Sin datos por ahora.';
+
+  async function tryFetchTrain(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.text();
+  }
+
+  async function loadTrainStatus() {
+    const pageUrl = 'https://www.argentina.gob.ar/transporte/trenes-argentinos/modificaciones-en-el-servicio-y-novedades';
+    const proxies = [
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(pageUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(pageUrl),
+      'https://corsproxy.io/?url=' + encodeURIComponent(pageUrl)
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const html = await tryFetchTrain(proxyUrl);
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const bodyText = doc.body.textContent.replace(/\s+/g, ' ');
+        const idx = bodyText.toLowerCase().indexOf('mitre');
+
+        let status = 'verde';
+        let detail = 'No aparece ninguna novedad activa para la línea Mitre: circularía con normalidad.';
+
+        if (idx !== -1) {
+          const context = bodyText.substring(Math.max(0, idx - 200), idx + 300);
+          const contextLower = context.toLowerCase();
+          if (contextLower.includes('interrump') || contextLower.includes('suspend')) {
+            status = 'rojo';
+          } else if (contextLower.includes('demora') || contextLower.includes('limitad') || contextLower.includes('modificac') || contextLower.includes('obras')) {
+            status = 'amarillo';
+          }
+          detail = context.trim();
+        }
+
+        applyTrainStatus(status, detail);
+        return;
+      } catch (err) {
+        console.warn('Proxy tren falló:', proxyUrl, err.message);
+        continue;
+      }
+    }
+    applyTrainStatus('gris', 'No se pudo consultar el estado en este momento.');
+  }
+
+  function applyTrainStatus(status, detail) {
+    const dots = { verde: '🟢', amarillo: '🟡', rojo: '🔴', gris: '⚪' };
+    const labels = { verde: 'Circula con normalidad', amarillo: 'Con demoras/obras', rojo: 'Interrumpido', gris: 'Sin datos ahora' };
+    document.getElementById('trainDot').textContent = dots[status];
+    document.getElementById('trainStatus').textContent = labels[status];
+    trainDetailText = detail;
+  }
+
   document.getElementById('trainNoteBtn').addEventListener('click', () => {
-    window.open('https://www.argentina.gob.ar/transporte/trenes-argentinos/modificaciones-en-el-servicio-y-novedades', '_blank');
+    document.getElementById('d-cat').textContent = 'Tren Mitre';
+    document.getElementById('d-time').textContent = document.getElementById('trainStatus').textContent;
+    document.getElementById('d-title').textContent = '🚆 Línea Mitre';
+    document.getElementById('d-desc').textContent = trainDetailText;
+    document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
+    overlay.classList.add('show');
   });
+
+  loadTrainStatus();
+  setInterval(loadTrainStatus, 1000 * 60 * 15); // revisa cada 15 min
 
   // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
   const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
