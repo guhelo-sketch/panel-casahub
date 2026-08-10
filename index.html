@@ -616,7 +616,8 @@
   });
 
   overlay.addEventListener('click', (e) => {
-    if(e.target === overlay || e.target.id === 'd-close'){
+    const tappedInsideSheet = e.target.closest('.detail-sheet');
+    if (!tappedInsideSheet || e.target.id === 'd-close') {
       overlay.classList.remove('show');
     }
   });
