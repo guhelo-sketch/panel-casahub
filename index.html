@@ -415,12 +415,16 @@
   .detail-sheet {
     background: var(--cream);
     width: 320px;
+    max-height: 78vh;
+    overflow-y: auto;
     border-radius: 10px;
     padding: 22px 22px 20px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     transform: translateY(14px) scale(0.97);
     transition: transform 0.22s ease;
   }
+  .detail-sheet::-webkit-scrollbar { width: 5px; }
+  .detail-sheet::-webkit-scrollbar-thumb { background: rgba(43,34,16,0.2); border-radius: 3px; }
   .overlay.show .detail-sheet { transform: translateY(0) scale(1); }
 
   .detail-cat {
