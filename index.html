@@ -836,7 +836,7 @@
     const style = typeStyle[type];
     const note = document.createElement('div');
     note.className = 'note dynamic-pending';
-    note.style.background = style.bg;
+    note.style.background = entry.done ? 'var(--sage)' : style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
     note.dataset.cat = style.cat;
     note.dataset.time = entry.time;
