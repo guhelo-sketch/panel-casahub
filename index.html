@@ -755,20 +755,46 @@
 
       const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
       localStorage.setItem(cacheKey, text); // guarda el último bueno por si la API falla después
-      return text;
+      return { text, kickoffMs: utcDate.getTime() };
     } catch (err) {
       console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
       const cached = localStorage.getItem(cacheKey);
-      return cached || null; // si nunca hubo dato guardado, no lo muestra
+      return { text: cached || null, kickoffMs: null };
     }
   }
 
+  // guarda, por equipo, para qué horario de partido ya programamos la consulta
+  // siguiente — así no reprogramamos de más si todavía es el mismo partido
+  const scheduledFor = { '135173': null, '133738': null };
+
+  function scheduleNextCheckFor(teamId, teamLabel, emoji, kickoffMs) {
+    if (!kickoffMs || scheduledFor[teamId] === kickoffMs) return; // ya programado para este partido
+    scheduledFor[teamId] = kickoffMs;
+
+    const checkAt = kickoffMs + 1000 * 60 * 60 * 3; // 3 hs después del inicio, de sobra para que termine
+    const delay = checkAt - Date.now();
+    if (delay <= 0) return; // ya pasó, la rutina periódica lo va a agarrar igual
+
+    setTimeout(async () => {
+      const result = await fetchNextMatch(teamId, teamLabel, emoji);
+      if (result.text) {
+        sportsItems = sportsItems.filter((t) => !t.includes(teamLabel));
+        sportsItems.push(result.text);
+      }
+      scheduleNextCheckFor(teamId, teamLabel, emoji, result.kickoffMs); // programa el próximo partido
+    }, delay);
+  }
+
   async function loadSports() {
-    const results = await Promise.all([
-      fetchNextMatch('135173', 'San Lorenzo', '🔴🔵'),
-      fetchNextMatch('133738', 'Real Madrid', '⚪')
-    ]);
-    sportsItems = results.filter(Boolean);
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const results = await Promise.all(
+      teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
+    );
+    sportsItems = results.map((r) => r.text).filter(Boolean);
+    results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
   }
 
   function showNextTickerItem() {
@@ -787,7 +813,7 @@
   loadSports();
   setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
   setInterval(loadDolar, 1000 * 60 * 20); // refresca cotizaciones cada 20 min
-  setInterval(loadSports, 1000 * 60 * 60); // refresca partidos cada 1 hora
+  setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
 
   // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
   let trainDetailText = 'Sin datos por ahora.';
