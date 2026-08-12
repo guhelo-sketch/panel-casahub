@@ -734,11 +734,12 @@
   const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
   async function fetchNextMatch(teamId, teamLabel, emoji) {
+    const cacheKey = 'nextMatch_' + teamId;
     try {
       const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
       const data = await res.json();
       const ev = data.events && data.events[0];
-      if (!ev) return `${emoji} ${teamLabel}: sin próximo partido confirmado`;
+      if (!ev) throw new Error('Sin evento');
 
       // strTimestamp viene en UTC; lo pasamos a hora Argentina para que
       // no importe en qué país se juegue el partido
@@ -752,10 +753,13 @@
       const rival = ev.strHomeTeam === teamLabel ? ev.strAwayTeam : ev.strHomeTeam;
       const vsText = ev.strHomeTeam === teamLabel ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
 
-      return `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
+      const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
+      localStorage.setItem(cacheKey, text); // guarda el último bueno por si la API falla después
+      return text;
     } catch (err) {
-      console.warn('Fútbol sin conexión:', teamLabel, err.message);
-      return null;
+      console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
+      const cached = localStorage.getItem(cacheKey);
+      return cached || null; // si nunca hubo dato guardado, no lo muestra
     }
   }
 
