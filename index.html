@@ -903,7 +903,8 @@
         venue: ev.strVenue || '',
         dateTimeText: `${dayName} ${dd} · ${hh}:${mm}hs`,
         teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
-        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge,
+        kickoffMs: utcDate.getTime()
       };
 
       const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
@@ -1040,6 +1041,34 @@
   loadSports();
   setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
   setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
+
+  // ---- red de seguridad: si el timer puntual se perdió (por una recarga de
+  // página, por ejemplo), esto se da cuenta solo y refresca igual ----
+  async function checkStaleMatches() {
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const now = Date.now();
+    for (const t of teams) {
+      const info = matchInfo[t.id];
+      const yaDeberiaHaberTerminado = info && info.kickoffMs && now > info.kickoffMs + 1000 * 60 * 60 * 3;
+      if (!yaDeberiaHaberTerminado) continue;
+
+      console.warn('Partido de ' + t.label + ' vencido sin refrescar, corrigiendo ahora');
+      const [result] = await Promise.all([
+        fetchNextMatch(t.id, t.label, t.emoji),
+        fetchLastResult(t.id, t.label)
+      ]);
+      if (result.text) {
+        sportsItems = sportsItems.filter((x) => !x.includes(t.label));
+        sportsItems.push(result.text);
+      }
+      renderSportsCards();
+      scheduleNextCheckFor(t.id, t.label, t.emoji, result.kickoffMs);
+    }
+  }
+  setInterval(checkStaleMatches, 1000 * 60 * 15); // revisa cada 15 min
 
   const sportsOverlay = document.getElementById('sportsOverlay');
   document.querySelector('.news-ribbon').style.cursor = 'pointer';
