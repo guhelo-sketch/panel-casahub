@@ -595,6 +595,16 @@
     text-align: center;
     margin-top: 10px;
   }
+  .sports-lastresult {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--ink);
+  }
 </style>
 </head>
 <body>
@@ -863,6 +873,7 @@
 
   // guarda la última info completa de cada equipo (para armar el post-it expandido)
   const matchInfo = { '135173': null, '133738': null };
+  const lastResultInfo = { '135173': null, '133738': null };
 
   async function fetchNextMatch(teamId, teamLabel, emoji) {
     const cacheKey = 'nextMatch_' + teamId;
@@ -909,6 +920,36 @@
     }
   }
 
+  // ---- último resultado jugado, mismo patrón que fetchNextMatch ----
+  async function fetchLastResult(teamId, teamLabel) {
+    const cacheKey = 'lastResult_' + teamId;
+    try {
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${teamId}`);
+      const data = await res.json();
+      const ev = data.results && data.results[0];
+      if (!ev || ev.intHomeScore === null || ev.intHomeScore === undefined) throw new Error('Sin resultado');
+
+      const isHome = ev.strHomeTeam === teamLabel;
+      const teamScore = isHome ? ev.intHomeScore : ev.intAwayScore;
+      const rivalScore = isHome ? ev.intAwayScore : ev.intHomeScore;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+
+      let resultEmoji = '🤝';
+      if (Number(teamScore) > Number(rivalScore)) resultEmoji = '✅';
+      else if (Number(teamScore) < Number(rivalScore)) resultEmoji = '❌';
+
+      const text = `${resultEmoji} Último: ${teamLabel} ${teamScore} - ${rivalScore} ${rival}`;
+      localStorage.setItem(cacheKey, text);
+      lastResultInfo[teamId] = text;
+      return text;
+    } catch (err) {
+      console.warn('Último resultado sin conexión, uso guardado:', teamLabel, err.message);
+      const cached = localStorage.getItem(cacheKey);
+      lastResultInfo[teamId] = cached || null;
+      return cached || null;
+    }
+  }
+
   // guarda, por equipo, para qué horario de partido ya programamos la consulta
   // siguiente — así no reprogramamos de más si todavía es el mismo partido
   const scheduledFor = { '135173': null, '133738': null };
@@ -922,7 +963,11 @@
     if (delay <= 0) return; // ya pasó, la rutina periódica lo va a agarrar igual
 
     setTimeout(async () => {
-      const result = await fetchNextMatch(teamId, teamLabel, emoji);
+      // justo acá el partido anterior ya terminó: pedimos el resultado Y el próximo partido juntos
+      const [result] = await Promise.all([
+        fetchNextMatch(teamId, teamLabel, emoji),
+        fetchLastResult(teamId, teamLabel)
+      ]);
       if (result.text) {
         sportsItems = sportsItems.filter((t) => !t.includes(teamLabel));
         sportsItems.push(result.text);
@@ -940,6 +985,7 @@
     const results = await Promise.all(
       teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
     );
+    await Promise.all(teams.map((t) => fetchLastResult(t.id, t.label)));
     sportsItems = results.map((r) => r.text).filter(Boolean);
     results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
     renderSportsCards();
@@ -954,6 +1000,7 @@
     const teamIds = ['135173', '133738'];
     teamIds.forEach((id) => {
       const info = matchInfo[id];
+      const lastResult = lastResultInfo[id];
       const card = document.createElement('div');
       card.className = 'full-postit sports-postit';
 
@@ -973,6 +1020,7 @@
         <div class="sports-matchup">${info.vsText}</div>
         <div class="sports-datetime">${info.dateTimeText}</div>
         <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
+        ${lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : ''}
       `;
       row.appendChild(card);
     });
