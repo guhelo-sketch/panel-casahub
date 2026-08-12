@@ -189,29 +189,6 @@
   }
   .weather-feels b { color: var(--ink); font-size: 12px; }
 
-  .forecast-strip {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    padding-top: 7px;
-    border-top: 1.5px dashed rgba(43,34,16,0.18);
-  }
-  .forecast-chip { text-align: center; flex: 1; }
-  .forecast-chip .day {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--ink-dim);
-    font-weight: 600;
-  }
-  .forecast-chip .ic { font-size: 15px; margin: 3px 0; }
-  .forecast-chip .range {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 10.5px;
-    font-weight: 600;
-  }
-  .forecast-chip .range .lo { color: var(--ink-dim); font-weight: 400; }
-
   .clock-note {
     background: var(--cream);
     width: 34%;
@@ -399,80 +376,163 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
   }
 
-  .overlay {
-    position: absolute;
+  .overlay-full {
+    position: fixed;
     inset: 0;
-    background: rgba(20,25,21,0.75);
+    background:
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 90px 24px 50px;
+  }
+  .overlay-full.show { opacity: 1; pointer-events: auto; }
+  .overlay-full::-webkit-scrollbar { width: 6px; }
+  .overlay-full::-webkit-scrollbar-thumb { background: rgba(241,236,221,0.25); border-radius: 3px; }
+
+  .overlay-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--cream);
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.22s ease;
-    z-index: 20;
+    font-size: 26px;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    cursor: pointer;
+    z-index: 60;
+    border: 3px solid rgba(255,255,255,0.15);
+    transition: transform 0.15s ease;
   }
-  .overlay.show { opacity: 1; pointer-events: auto; }
+  .overlay-close:active { transform: scale(0.92); }
 
-  .detail-sheet {
+  .full-postit {
+    width: 100%;
+    max-width: 640px;
     background: var(--cream);
-    width: 320px;
-    max-height: 78vh;
-    overflow-y: auto;
-    border-radius: 10px;
-    padding: 22px 22px 20px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    transform: translateY(14px) scale(0.97);
-    transition: transform 0.22s ease;
+    border-radius: 16px;
+    padding: 42px 36px 46px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    position: relative;
+    color: var(--ink);
   }
-  .detail-sheet::-webkit-scrollbar { width: 5px; }
-  .detail-sheet::-webkit-scrollbar-thumb { background: rgba(43,34,16,0.2); border-radius: 3px; }
-  .overlay.show .detail-sheet { transform: translateY(0) scale(1); }
+  .full-postit::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 76px;
+    height: 26px;
+    background: rgba(232,181,77,0.6);
+  }
 
   .detail-cat {
     display: inline-block;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 20px;
+    padding: 6px 16px;
+    border-radius: 24px;
     background: rgba(43,34,16,0.08);
   }
   .detail-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 12px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--ink-dim);
-    margin-top: 10px;
+    margin-top: 18px;
   }
   .detail-title {
     font-family: 'Kalam', cursive;
-    font-size: 22px;
-    margin-top: 5px;
+    font-size: 32px;
+    margin-top: 8px;
+    line-height: 1.2;
   }
   .detail-desc {
-    font-size: 12.5px;
+    font-size: 17px;
     color: var(--ink-dim);
-    line-height: 1.6;
-    margin-top: 10px;
+    line-height: 1.7;
+    margin-top: 18px;
     white-space: pre-line;
   }
   .detail-who {
-    margin-top: 14px;
-    font-size: 11.5px;
-    font-weight: 600;
+    margin-top: 22px;
+    font-size: 15px;
+    font-weight: 700;
   }
-  .detail-close {
-    margin-top: 18px;
+
+  .weather-minmax {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    font-size: 11px;
+    color: var(--ink-dim);
     text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--cream);
-    background: var(--ink);
-    border-radius: 30px;
-    padding: 10px;
-    cursor: pointer;
   }
+  .weather-minmax b { color: var(--ink); font-weight: 700; }
+
+  .wf-header { display: flex; align-items: center; gap: 20px; }
+  .wf-icon { font-size: 60px; line-height: 1; }
+  .wf-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1;
+  }
+  .wf-cond { font-size: 17px; color: var(--ink-dim); margin-top: 4px; }
+  .wf-meta {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    font-size: 16px;
+    color: var(--ink-dim);
+    display: flex;
+    gap: 24px;
+  }
+  .wf-meta b { color: var(--ink); font-size: 18px; }
+  .wf-forecast-title {
+    font-family: 'Kalam', cursive;
+    font-size: 20px;
+    margin-top: 28px;
+    margin-bottom: 12px;
+  }
+  .wf-forecast { display: flex; gap: 12px; flex-wrap: wrap; }
+  .wf-day-card {
+    flex: 1;
+    min-width: 90px;
+    background: rgba(43,34,16,0.05);
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .wf-day-card .d {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--ink-dim);
+  }
+  .wf-day-card .i { font-size: 30px; margin: 8px 0; }
+  .wf-day-card .r {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .wf-day-card .r .lo { color: var(--ink-dim); font-weight: 400; }
 </style>
 </head>
 <body>
@@ -483,7 +543,7 @@
   <div class="night-toggle" id="nightToggle">noche (demo)</div>
 
   <div class="top-row">
-    <div class="weather-note postit">
+    <div class="weather-note postit" id="weatherNoteBtn" style="cursor: pointer;">
       <div class="weather-top">
         <div class="weather-icon-big" id="w-icon-now">⛅</div>
         <div>
@@ -495,27 +555,8 @@
         </div>
       </div>
 
-      <div class="forecast-strip" id="forecast-strip">
-        <div class="forecast-chip">
-          <div class="day">Hoy</div>
-          <div class="ic" id="f0-ic">⛅</div>
-          <div class="range" id="f0-range">--° <span class="lo">--°</span></div>
-        </div>
-        <div class="forecast-chip">
-          <div class="day" id="f1-day">--</div>
-          <div class="ic" id="f1-ic">⛅</div>
-          <div class="range" id="f1-range">--° <span class="lo">--°</span></div>
-        </div>
-        <div class="forecast-chip">
-          <div class="day" id="f2-day">--</div>
-          <div class="ic" id="f2-ic">⛅</div>
-          <div class="range" id="f2-range">--° <span class="lo">--°</span></div>
-        </div>
-        <div class="forecast-chip">
-          <div class="day" id="f3-day">--</div>
-          <div class="ic" id="f3-ic">⛅</div>
-          <div class="range" id="f3-range">--° <span class="lo">--°</span></div>
-        </div>
+      <div class="weather-minmax">
+        Máx <b id="w-max-today">--°</b> · Mín <b id="w-min-today">--°</b>
       </div>
     </div>
 
@@ -554,14 +595,33 @@
     </div>
   </div>
 
-  <div class="overlay" id="overlay">
-    <div class="detail-sheet">
+  <div class="overlay-full" id="overlay">
+    <div class="overlay-close" id="d-close">✕</div>
+    <div class="full-postit">
       <div class="detail-cat" id="d-cat">Colegio</div>
       <div class="detail-time" id="d-time">16:30</div>
       <div class="detail-title" id="d-title">Buscar a Lorenzo</div>
       <div class="detail-desc" id="d-desc">Descripción</div>
       <div class="detail-who" id="d-who">Asignado a</div>
-      <div class="detail-close" id="d-close">Cerrar</div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="weatherOverlay">
+    <div class="overlay-close" id="weatherClose">✕</div>
+    <div class="full-postit">
+      <div class="wf-header">
+        <div class="wf-icon" id="wf-icon">☀️</div>
+        <div>
+          <div class="wf-temp" id="wf-temp">--°</div>
+          <div class="wf-cond" id="wf-cond">Despejado</div>
+        </div>
+      </div>
+      <div class="wf-meta">
+        <div>Sensación <b id="wf-feels">--°</b></div>
+        <div>Máx <b id="wf-max">--°</b> · Mín <b id="wf-min">--°</b></div>
+      </div>
+      <div class="wf-forecast-title">📅 Próximos días</div>
+      <div class="wf-forecast" id="wf-forecast"></div>
     </div>
   </div>
 
@@ -617,8 +677,7 @@
   });
 
   overlay.addEventListener('click', (e) => {
-    const tappedInsideSheet = e.target.closest('.detail-sheet');
-    if (!tappedInsideSheet || e.target.id === 'd-close') {
+    if (!e.target.closest('.full-postit')) {
       overlay.classList.remove('show');
     }
   });
@@ -647,9 +706,9 @@
   const LON = -58.5580;
   const weekShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  function weatherInfo(code) {
-    if (code === 0) return { ic: '☀️', txt: 'Despejado' };
-    if (code === 1 || code === 2) return { ic: '⛅', txt: 'Parcialmente nublado' };
+  function weatherInfo(code, isDay) {
+    if (code === 0) return { ic: isDay ? '☀️' : '🌙', txt: 'Despejado' };
+    if (code === 1 || code === 2) return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Parcialmente nublado' };
     if (code === 3) return { ic: '☁️', txt: 'Nublado' };
     if (code === 45 || code === 48) return { ic: '🌫️', txt: 'Niebla' };
     if ([51,53,55,56,57].includes(code)) return { ic: '🌦️', txt: 'Llovizna' };
@@ -657,16 +716,17 @@
     if ([71,73,75,77].includes(code)) return { ic: '❄️', txt: 'Nieve' };
     if ([80,81,82].includes(code)) return { ic: '🌦️', txt: 'Chubascos' };
     if ([95,96,99].includes(code)) return { ic: '⛈️', txt: 'Tormenta' };
-    return { ic: '⛅', txt: 'Variable' };
+    return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Variable' };
   }
 
   async function loadWeather() {
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`;
       const res = await fetch(url);
       const data = await res.json();
 
-      const nowInfo = weatherInfo(data.current.weather_code);
+      const isDayNow = data.current.is_day === 1;
+      const nowInfo = weatherInfo(data.current.weather_code, isDayNow);
       document.getElementById('w-icon-now').textContent = nowInfo.ic;
       document.getElementById('w-temp-now').textContent = Math.round(data.current.temperature_2m) + '°';
       document.getElementById('w-cond-now').textContent = nowInfo.txt;
@@ -677,21 +737,37 @@
       const maxs = data.daily.temperature_2m_max;
       const mins = data.daily.temperature_2m_min;
 
-      const info0 = weatherInfo(codes[0]);
-      document.getElementById('f0-ic').textContent = info0.ic;
-      document.getElementById('f0-range').innerHTML = Math.round(maxs[0]) + '° <span class="lo">' + Math.round(mins[0]) + '°</span>';
+      // ---- tarjeta compacta: máx/mín de hoy ----
+      document.getElementById('w-max-today').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('w-min-today').textContent = Math.round(mins[0]) + '°';
 
-      // ---- aviso de lluvia/paraguas, con el mismo pronóstico que ya trajimos ----
+      // ---- aviso de lluvia/paraguas ----
       const rainCodes = [51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99];
       const rainTag = document.getElementById('rainTag');
       rainTag.textContent = rainCodes.includes(codes[0]) ? '☔ Llevate paraguas' : '';
 
-      for (let i = 1; i <= 3; i++) {
-        const info = weatherInfo(codes[i]);
-        const d = new Date(days[i] + 'T00:00:00');
-        document.getElementById('f' + i + '-day').textContent = weekShort[d.getDay()];
-        document.getElementById('f' + i + '-ic').textContent = info.ic;
-        document.getElementById('f' + i + '-range').innerHTML = Math.round(maxs[i]) + '° <span class="lo">' + Math.round(mins[i]) + '°</span>';
+      // ---- clima expandido (pantalla completa) ----
+      document.getElementById('wf-icon').textContent = nowInfo.ic;
+      document.getElementById('wf-temp').textContent = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('wf-cond').textContent = nowInfo.txt;
+      document.getElementById('wf-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+      document.getElementById('wf-max').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('wf-min').textContent = Math.round(mins[0]) + '°';
+
+      const forecastEl = document.getElementById('wf-forecast');
+      forecastEl.innerHTML = '';
+      for (let i = 0; i < days.length; i++) {
+        // los días futuros muestran el ícono "de día" (representan el pronóstico general del día)
+        const info = weatherInfo(codes[i], true);
+        const dayLabel = i === 0 ? 'Hoy' : weekShort[new Date(days[i] + 'T00:00:00').getDay()];
+        const card = document.createElement('div');
+        card.className = 'wf-day-card';
+        card.innerHTML = `
+          <div class="d">${dayLabel}</div>
+          <div class="i">${info.ic}</div>
+          <div class="r">${Math.round(maxs[i])}° <span class="lo">${Math.round(mins[i])}°</span></div>
+        `;
+        forecastEl.appendChild(card);
       }
     } catch (err) {
       document.getElementById('w-cond-now').textContent = 'Sin conexión';
@@ -700,6 +776,16 @@
 
   loadWeather();
   setInterval(loadWeather, 1000 * 60 * 30);
+
+  const weatherOverlay = document.getElementById('weatherOverlay');
+  document.getElementById('weatherNoteBtn').addEventListener('click', () => {
+    weatherOverlay.classList.add('show');
+  });
+  weatherOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      weatherOverlay.classList.remove('show');
+    }
+  });
 
   // ---- ticker: próximos partidos (TheSportsDB) ----
   let sportsItems = [];
