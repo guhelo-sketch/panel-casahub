@@ -540,7 +540,7 @@
   </div>
 
   <div class="news-ribbon">
-    <span class="news-tag">📌 Al día</span>
+    <span class="news-tag">⚽ Próximo partido</span>
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
@@ -701,34 +701,9 @@
   loadWeather();
   setInterval(loadWeather, 1000 * 60 * 30);
 
-  // ---- ticker unificado: dólar (dolarapi.com) + próximos partidos (TheSportsDB) ----
-  let dolarItems = [];
+  // ---- ticker: próximos partidos (TheSportsDB) ----
   let sportsItems = [];
   let tickerIndex = 0;
-
-  const dolarLabels = {
-    oficial: 'Oficial',
-    blue: 'Blue',
-    bolsa: 'MEP',
-    contadoconliqui: 'CCL',
-    tarjeta: 'Tarjeta',
-    mayorista: 'Mayorista',
-    cripto: 'Cripto'
-  };
-  const dolarOrder = ['oficial', 'blue', 'bolsa', 'contadoconliqui'];
-
-  async function loadDolar() {
-    try {
-      const res = await fetch('https://dolarapi.com/v1/dolares');
-      const data = await res.json();
-      dolarItems = dolarOrder
-        .map(tipo => data.find(d => d.casa === tipo))
-        .filter(Boolean)
-        .map(d => `💵 ${dolarLabels[d.casa]}: compra $${Math.round(d.compra)} · venta $${Math.round(d.venta)}`);
-    } catch (err) {
-      console.warn('Dólar sin conexión:', err.message);
-    }
-  }
 
   // ---- próximo partido de un equipo, vía TheSportsDB (gratis, sin key) ----
   const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -798,21 +773,18 @@
   }
 
   function showNextTickerItem() {
-    const allItems = [...dolarItems, ...sportsItems];
-    if (!allItems.length) return;
+    if (!sportsItems.length) return;
     const el = document.getElementById('newsText');
     el.style.opacity = 0;
     setTimeout(() => {
-      el.textContent = allItems[tickerIndex % allItems.length];
+      el.textContent = sportsItems[tickerIndex % sportsItems.length];
       tickerIndex++;
       el.style.opacity = 1;
     }, 400);
   }
 
-  loadDolar();
   loadSports();
   setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
-  setInterval(loadDolar, 1000 * 60 * 20); // refresca cotizaciones cada 20 min
   setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
 
   // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
