@@ -533,6 +533,68 @@
     font-weight: 700;
   }
   .wf-day-card .r .lo { color: var(--ink-dim); font-weight: 400; }
+
+  .full-postit-row {
+    width: 100%;
+    max-width: 920px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+  }
+  .sports-postit {
+    flex: 1;
+    min-width: 300px;
+    max-width: 420px;
+  }
+  .sports-postit:nth-child(1) { transform: rotate(-1.4deg); }
+  .sports-postit:nth-child(2) { transform: rotate(1.2deg); }
+
+  .sports-league {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .sports-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .sports-badge {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+  .sports-vs {
+    font-family: 'Kalam', cursive;
+    font-size: 18px;
+    color: var(--ink-dim);
+  }
+  .sports-matchup {
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.25;
+  }
+  .sports-datetime {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 12px;
+    color: var(--ink);
+  }
+  .sports-venue {
+    font-size: 14px;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
@@ -623,6 +685,11 @@
       <div class="wf-forecast-title">📅 Próximos días</div>
       <div class="wf-forecast" id="wf-forecast"></div>
     </div>
+  </div>
+
+  <div class="overlay-full" id="sportsOverlay">
+    <div class="overlay-close" id="sportsClose">✕</div>
+    <div class="full-postit-row" id="sportsRow"></div>
   </div>
 
   <audio id="radioAudio"></audio>
@@ -794,8 +861,12 @@
   // ---- próximo partido de un equipo, vía TheSportsDB (gratis, sin key) ----
   const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
+  // guarda la última info completa de cada equipo (para armar el post-it expandido)
+  const matchInfo = { '135173': null, '133738': null };
+
   async function fetchNextMatch(teamId, teamLabel, emoji) {
     const cacheKey = 'nextMatch_' + teamId;
+    const cacheDataKey = 'nextMatchData_' + teamId;
     try {
       const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
       const data = await res.json();
@@ -811,15 +882,29 @@
       const hh = String(argDate.getHours()).padStart(2, '0');
       const mm = String(argDate.getMinutes()).padStart(2, '0');
 
-      const rival = ev.strHomeTeam === teamLabel ? ev.strAwayTeam : ev.strHomeTeam;
-      const vsText = ev.strHomeTeam === teamLabel ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
+      const isHome = ev.strHomeTeam === teamLabel;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+      const vsText = isHome ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
+
+      const info = {
+        vsText,
+        league: ev.strLeague || '',
+        venue: ev.strVenue || '',
+        dateTimeText: `${dayName} ${dd} · ${hh}:${mm}hs`,
+        teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge
+      };
 
       const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
       localStorage.setItem(cacheKey, text); // guarda el último bueno por si la API falla después
+      localStorage.setItem(cacheDataKey, JSON.stringify(info));
+      matchInfo[teamId] = info;
       return { text, kickoffMs: utcDate.getTime() };
     } catch (err) {
       console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
       const cached = localStorage.getItem(cacheKey);
+      const cachedData = localStorage.getItem(cacheDataKey);
+      if (cachedData) matchInfo[teamId] = JSON.parse(cachedData);
       return { text: cached || null, kickoffMs: null };
     }
   }
@@ -842,6 +927,7 @@
         sportsItems = sportsItems.filter((t) => !t.includes(teamLabel));
         sportsItems.push(result.text);
       }
+      renderSportsCards();
       scheduleNextCheckFor(teamId, teamLabel, emoji, result.kickoffMs); // programa el próximo partido
     }, delay);
   }
@@ -856,6 +942,40 @@
     );
     sportsItems = results.map((r) => r.text).filter(Boolean);
     results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
+    renderSportsCards();
+  }
+
+  // ---- arma los dos post-its del desplegable de fútbol ----
+  function renderSportsCards() {
+    const row = document.getElementById('sportsRow');
+    if (!row) return;
+    row.innerHTML = '';
+
+    const teamIds = ['135173', '133738'];
+    teamIds.forEach((id) => {
+      const info = matchInfo[id];
+      const card = document.createElement('div');
+      card.className = 'full-postit sports-postit';
+
+      if (!info) {
+        card.innerHTML = `<div class="sports-league">Sin datos por ahora</div>`;
+        row.appendChild(card);
+        return;
+      }
+
+      card.innerHTML = `
+        <div class="sports-league">${info.league}</div>
+        <div class="sports-teams">
+          <img class="sports-badge" src="${info.teamBadge || ''}" onerror="this.style.display='none'">
+          <div class="sports-vs">vs</div>
+          <img class="sports-badge" src="${info.rivalBadge || ''}" onerror="this.style.display='none'">
+        </div>
+        <div class="sports-matchup">${info.vsText}</div>
+        <div class="sports-datetime">${info.dateTimeText}</div>
+        <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
+      `;
+      row.appendChild(card);
+    });
   }
 
   function showNextTickerItem() {
@@ -872,6 +992,17 @@
   loadSports();
   setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
   setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
+
+  const sportsOverlay = document.getElementById('sportsOverlay');
+  document.querySelector('.news-ribbon').style.cursor = 'pointer';
+  document.querySelector('.news-ribbon').addEventListener('click', () => {
+    sportsOverlay.classList.add('show');
+  });
+  sportsOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      sportsOverlay.classList.remove('show');
+    }
+  });
 
   // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
   let trainDetailText = 'Sin datos por ahora.';
