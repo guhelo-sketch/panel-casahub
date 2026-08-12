@@ -164,11 +164,11 @@
     align-items: center;
     gap: 10px;
   }
-  .weather-icon-big { font-size: 32px; line-height: 1; }
+  .weather-icon-big { font-size: 28px; line-height: 1; }
   .weather-temp {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 32px;
+    font-size: 28px;
     line-height: 1;
   }
   .weather-cond {
@@ -235,7 +235,7 @@
   .clock {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 38px;
+    font-size: 34px;
     line-height: 1;
     margin-top: 3px;
     letter-spacing: -0.01em;
@@ -254,23 +254,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     background: rgba(241,236,221,0.92);
-    border-radius: 3px;
-    padding: 5px 14px;
+    border-radius: 5px;
+    padding: 9px 16px;
     transform: rotate(-0.4deg);
     box-shadow: 2px 4px 10px rgba(0,0,0,0.25);
   }
   .news-tag {
     font-family: 'Kalam', cursive;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--brick);
     flex-shrink: 0;
     white-space: nowrap;
   }
   .news-text {
-    font-size: 11px;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--ink);
     white-space: nowrap;
     overflow: hidden;
@@ -539,7 +540,7 @@
   </div>
 
   <div class="news-ribbon">
-    <span class="news-tag">💵 Dólar hoy</span>
+    <span class="news-tag">📌 Al día</span>
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
@@ -700,10 +701,11 @@
   loadWeather();
   setInterval(loadWeather, 1000 * 60 * 30);
 
-  // ---- noticias: titulares rotando vía rss2json (sin API key, uso liviano) ----
-  // ---- dólar: cotizaciones en vivo vía dolarapi.com, sin key, hecha para esto ----
+  // ---- ticker unificado: dólar (dolarapi.com) + próximos partidos (TheSportsDB) ----
   let dolarItems = [];
-  let dolarIndex = 0;
+  let sportsItems = [];
+  let tickerIndex = 0;
+
   const dolarLabels = {
     oficial: 'Oficial',
     blue: 'Blue',
@@ -722,30 +724,66 @@
       dolarItems = dolarOrder
         .map(tipo => data.find(d => d.casa === tipo))
         .filter(Boolean)
-        .map(d => `${dolarLabels[d.casa]}: compra $${Math.round(d.compra)} · venta $${Math.round(d.venta)}`);
-      if (dolarItems.length) {
-        dolarIndex = 0;
-        showNextDolar();
-      }
+        .map(d => `💵 ${dolarLabels[d.casa]}: compra $${Math.round(d.compra)} · venta $${Math.round(d.venta)}`);
     } catch (err) {
-      document.getElementById('newsText').textContent = 'Sin conexión al dólar';
+      console.warn('Dólar sin conexión:', err.message);
     }
   }
 
-  function showNextDolar() {
-    if (!dolarItems.length) return;
+  // ---- próximo partido de un equipo, vía TheSportsDB (gratis, sin key) ----
+  const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+  async function fetchNextMatch(teamId, teamLabel, emoji) {
+    try {
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
+      const data = await res.json();
+      const ev = data.events && data.events[0];
+      if (!ev) return `${emoji} ${teamLabel}: sin próximo partido confirmado`;
+
+      // strTimestamp viene en UTC; lo pasamos a hora Argentina para que
+      // no importe en qué país se juegue el partido
+      const utcDate = new Date(ev.strTimestamp + 'Z');
+      const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      const dayName = weekShortEs2[argDate.getDay()];
+      const dd = String(argDate.getDate()).padStart(2, '0');
+      const hh = String(argDate.getHours()).padStart(2, '0');
+      const mm = String(argDate.getMinutes()).padStart(2, '0');
+
+      const rival = ev.strHomeTeam === teamLabel ? ev.strAwayTeam : ev.strHomeTeam;
+      const vsText = ev.strHomeTeam === teamLabel ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
+
+      return `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
+    } catch (err) {
+      console.warn('Fútbol sin conexión:', teamLabel, err.message);
+      return null;
+    }
+  }
+
+  async function loadSports() {
+    const results = await Promise.all([
+      fetchNextMatch('135173', 'San Lorenzo', '🔴🔵'),
+      fetchNextMatch('133738', 'Real Madrid', '⚪')
+    ]);
+    sportsItems = results.filter(Boolean);
+  }
+
+  function showNextTickerItem() {
+    const allItems = [...dolarItems, ...sportsItems];
+    if (!allItems.length) return;
     const el = document.getElementById('newsText');
     el.style.opacity = 0;
     setTimeout(() => {
-      el.textContent = dolarItems[dolarIndex % dolarItems.length];
-      dolarIndex++;
+      el.textContent = allItems[tickerIndex % allItems.length];
+      tickerIndex++;
       el.style.opacity = 1;
     }, 400);
   }
 
   loadDolar();
-  setInterval(showNextDolar, 1000 * 60 * 3); // rota cada 3 min
-  setInterval(loadDolar, 1000 * 60 * 20); // refresca valores cada 20 min
+  loadSports();
+  setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
+  setInterval(loadDolar, 1000 * 60 * 20); // refresca cotizaciones cada 20 min
+  setInterval(loadSports, 1000 * 60 * 60); // refresca partidos cada 1 hora
 
   // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
   let trainDetailText = 'Sin datos por ahora.';
