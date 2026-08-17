@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Panel del día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+  :root {
+    --board: #26332C;
+    --board-2: #2e3d33;
+    --line: rgba(241,236,221,0.10);
+    --cream: #F1ECDD;
+    --cream-dim: #ABB6A2;
+    --mustard: #E8B54D;
+    --sage: #DCE6D6;
+    --sky: #D9E8F0;
+    --teal: #C9E4DD;
+    --lilac: #E3DAF0;
+    --ink: #2b2210;
+    --ink-dim: rgba(43,34,16,0.55);
+    --brick: #C2694B;
+    --brick-paper: #F3D9C9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--board);
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+
+  body { display: flex; align-items: center; justify-content: center; }
+
+  .device {
+    width: 100vw;
+    height: 100vh;
+    background:
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: none;
+    padding: 30px 38px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transition: filter 0.6s ease;
+  }
+
+  .device.night { filter: brightness(0.22) saturate(0.55) contrast(1.05); }
+
+  .status {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: var(--cream-dim);
+    letter-spacing: 0.04em;
+  }
+  .status .dot-live {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #8FBF8A;
+    box-shadow: 0 0 0 2px rgba(143,191,138,0.18);
+  }
+
+  .night-toggle {
+    position: absolute;
+    top: 12px;
+    left: 26px;
+    font-size: 9px;
+    color: var(--cream-dim);
+    opacity: 0.5;
+    z-index: 30;
+    cursor: pointer;
+  }
+
+  .postit {
+    position: relative;
+    border-radius: 4px;
+    box-shadow: 3px 7px 16px rgba(0,0,0,0.35);
+    color: var(--ink);
+  }
+  .postit::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 42px;
+    height: 16px;
+    background: rgba(241,236,221,0.55);
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 2px;
+  }
+
+  .mid-widgets {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+
+  .mini-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--sky);
+    box-shadow: 4px 8px 20px rgba(0,0,0,0.3);
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .mini-btn:active { transform: scale(0.94); }
+  .mini-btn.playing {
+    background: var(--mustard);
+    animation: radioPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes radioPulse {
+    0%, 100% { box-shadow: 4px 8px 20px rgba(0,0,0,0.3), 0 0 0 0 rgba(232,181,77,0.5); }
+    50% { box-shadow: 4px 8px 20px rgba(0,0,0,0.3), 0 0 0 12px rgba(232,181,77,0); }
+  }
+  .mini-btn .ic { font-size: 32px; line-height: 1; }
+  .mini-btn .lbl {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .mini-btn.train-verde { background: #A9D3A0; }
+  .mini-btn.train-amarillo { background: var(--mustard); }
+  .mini-btn.train-rojo { background: #E3A794; }
+  .mini-btn.train-gris { background: #D8D3C4; }
+
+  .weather-note {
+    background: var(--sky);
+    width: 44%;
+    padding: 22px 26px 18px;
+    transform: rotate(-1.3deg);
+  }
+
+  .weather-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .weather-icon-big { font-size: 50px; line-height: 1; }
+  .weather-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 50px;
+    line-height: 1;
+  }
+  .weather-cond {
+    font-size: 18px;
+    color: var(--ink-dim);
+    margin-top: 4px;
+  }
+  #rainTag {
+    color: #3D7EA6;
+    font-weight: 600;
+  }
+  .weather-feels {
+    margin-left: auto;
+    text-align: right;
+    font-size: 16px;
+    color: var(--ink-dim);
+    line-height: 1.3;
+  }
+  .weather-feels b { color: var(--ink); font-size: 21px; }
+
+  .clock-note {
+    background: var(--cream);
+    width: 34%;
+    padding: 18px 28px 20px;
+    transform: rotate(1.4deg);
+    text-align: center;
+  }
+
+  .weekday {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    color: #8a6a1f;
+  }
+  .fulldate {
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .clock {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 60px;
+    line-height: 1;
+    margin-top: 5px;
+    letter-spacing: -0.01em;
+  }
+  .clock span { color: #b8862b; }
+
+  .phrase-line {
+    margin-top: 9px;
+    font-family: 'Kalam', cursive;
+    font-size: 17px;
+    color: var(--ink-dim);
+    line-height: 1.2;
+  }
+
+  .news-ribbon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(241,236,221,0.92);
+    border-radius: 8px;
+    padding: 16px 26px;
+    transform: rotate(-0.4deg);
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+  }
+  .news-tag {
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brick);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .news-text {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.4s ease;
+  }
+
+  .radio-station-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(43,34,16,0.06);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .radio-station-btn.playing {
+    background: var(--mustard);
+  }
+  .radio-stop-btn {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+
+  .pending-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    color: var(--cream);
+  }
+
+  .notes-row {
+    flex: 1;
+    display: flex;
+    gap: 34px;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 4px 8px;
+  }
+  .notes-row::-webkit-scrollbar { display: none; }
+
+  .note {
+    background: var(--mustard);
+    flex: 1 1 340px;
+    max-width: 340px;
+    min-width: 230px;
+    min-height: 250px;
+    padding: 30px 30px 24px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    border-radius: 10px;
+    box-shadow: 6px 12px 26px rgba(0,0,0,0.32);
+  }
+  .note:active { transform: scale(0.97) rotate(0deg) !important; }
+
+  .note:nth-child(1) { transform: rotate(-2.5deg); background: var(--mustard); }
+  .note:nth-child(2) { transform: rotate(1.8deg); background: var(--cream); }
+  .note:nth-child(3) { transform: rotate(-1.2deg); background: var(--sage); }
+  .note:nth-child(4) { transform: rotate(2.2deg); background: var(--mustard); }
+  .note.alert-note { background: var(--brick-paper); transform: rotate(-1.6deg); }
+
+  .note-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    opacity: 0.6;
+    letter-spacing: 0.03em;
+  }
+  .note-title {
+    font-family: 'Kalam', cursive;
+    font-size: 36px;
+    font-weight: 700;
+    margin-top: 10px;
+    line-height: 1.2;
+  }
+  .note-who {
+    font-size: 22px;
+    opacity: 0.55;
+    margin-top: 16px;
+  }
+
+  .note.grouped {
+    position: relative;
+  }
+  .note.grouped::before,
+  .note.grouped::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    border-radius: inherit;
+    z-index: -1;
+  }
+  .note.grouped::before { transform: rotate(-6deg) translate(-8px, 6px); opacity: 0.75; }
+  .note.grouped::after { transform: rotate(7deg) translate(9px, -5px); opacity: 0.55; }
+
+  .note-count-badge {
+    position: absolute;
+    top: -16px;
+    right: -16px;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .overlay-full {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 90px 24px 50px;
+  }
+  .overlay-full.show { opacity: 1; pointer-events: auto; }
+  .overlay-full::-webkit-scrollbar { width: 6px; }
+  .overlay-full::-webkit-scrollbar-thumb { background: rgba(241,236,221,0.25); border-radius: 3px; }
+
+  .overlay-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    cursor: pointer;
+    z-index: 60;
+    border: 3px solid rgba(255,255,255,0.15);
+    transition: transform 0.15s ease;
+  }
+  .overlay-close:active { transform: scale(0.92); }
+
+  .full-postit {
+    width: 100%;
+    max-width: 640px;
+    background: var(--cream);
+    border-radius: 16px;
+    padding: 42px 36px 46px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    position: relative;
+    color: var(--ink);
+  }
+  .full-postit::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 76px;
+    height: 26px;
+    background: rgba(232,181,77,0.6);
+  }
+
+  .detail-cat {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 24px;
+    background: rgba(43,34,16,0.08);
+  }
+  .detail-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    margin-top: 18px;
+  }
+  .detail-title {
+    font-family: 'Kalam', cursive;
+    font-size: 32px;
+    margin-top: 8px;
+    line-height: 1.2;
+  }
+  .detail-desc {
+    font-size: 17px;
+    color: var(--ink-dim);
+    line-height: 1.7;
+    margin-top: 18px;
+    white-space: pre-line;
+  }
+  .detail-who {
+    margin-top: 22px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .weather-minmax {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    font-size: 18px;
+    color: var(--ink-dim);
+    text-align: center;
+  }
+  .weather-minmax b { color: var(--ink); font-weight: 700; }
+
+  .wf-header { display: flex; align-items: center; gap: 20px; }
+  .wf-icon { font-size: 60px; line-height: 1; }
+  .wf-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1;
+  }
+  .wf-cond { font-size: 17px; color: var(--ink-dim); margin-top: 4px; }
+  .wf-meta {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    font-size: 16px;
+    color: var(--ink-dim);
+    display: flex;
+    gap: 24px;
+  }
+  .wf-meta b { color: var(--ink); font-size: 18px; }
+  .wf-forecast-title {
+    font-family: 'Kalam', cursive;
+    font-size: 20px;
+    margin-top: 28px;
+    margin-bottom: 12px;
+  }
+  .wf-forecast { display: flex; gap: 12px; flex-wrap: wrap; }
+  .wf-day-card {
+    flex: 1;
+    min-width: 90px;
+    background: rgba(43,34,16,0.05);
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .wf-day-card .d {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--ink-dim);
+  }
+  .wf-day-card .i { font-size: 30px; margin: 8px 0; }
+  .wf-day-card .r {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .wf-day-card .r .lo { color: var(--ink-dim); font-weight: 400; }
+
+  .full-postit-row {
+    width: 100%;
+    max-width: 920px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+  }
+  .sports-postit {
+    flex: 1;
+    min-width: 300px;
+    max-width: 420px;
+  }
+  .sports-postit:nth-child(1) { transform: rotate(-1.4deg); }
+  .sports-postit:nth-child(2) { transform: rotate(1.2deg); }
+
+  .sports-league {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .sports-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .sports-badge {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+  .sports-vs {
+    font-family: 'Kalam', cursive;
+    font-size: 18px;
+    color: var(--ink-dim);
+  }
+  .sports-matchup {
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.25;
+  }
+  .sports-datetime {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 12px;
+    color: var(--ink);
+  }
+  .sports-venue {
+    font-size: 14px;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-top: 10px;
+  }
+  .sports-lastresult {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--ink);
+  }
+  .tv-window {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 400px;
+    height: 225px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+    z-index: 40;
+    display: none;
+    border: 4px solid var(--mustard);
+    background: #000;
+  }
+  .tv-window.show { display: block; }
+  .tv-window iframe { width: 100%; height: 100%; border: 0; }
+  .tv-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<div class="device" id="device">
+
+  <div class="status"><div class="dot-live"></div>Wi-Fi conectado</div>
+  <div class="night-toggle" id="nightToggle">noche (demo)</div>
+
+  <div class="top-row">
+    <div class="weather-note postit" id="weatherNoteBtn" style="cursor: pointer;">
+      <div class="weather-top">
+        <div class="weather-icon-big" id="w-icon-now">⛅</div>
+        <div>
+          <div class="weather-temp" id="w-temp-now">--°</div>
+          <div class="weather-cond"><span id="w-cond-now">Cargando...</span> <span id="rainTag"></span></div>
+        </div>
+        <div class="weather-feels">
+          Sensación<br><b id="w-feels">--°</b>
+        </div>
+      </div>
+
+      <div class="weather-minmax">
+        Máx <b id="w-max-today">--°</b> · Mín <b id="w-min-today">--°</b>
+      </div>
+    </div>
+
+    <div class="mid-widgets">
+      <div class="mini-btn" id="radioNoteBtn">
+        <div class="ic" id="radioMiniIcon">📻</div>
+        <div class="lbl">MEGA</div>
+      </div>
+
+      <div class="mini-btn train-gris" id="trainMini">
+        <div class="ic" id="trainMiniIcon">🚆</div>
+        <div class="lbl">MITRE</div>
+      </div>
+
+      <div class="mini-btn" id="tvMini">
+        <div class="ic">📺</div>
+        <div class="lbl">TN</div>
+      </div>
+    </div>
+
+    <div class="clock-note postit">
+      <div class="weekday" id="weekday">jueves</div>
+      <div class="fulldate" id="fulldate">6 de agosto</div>
+      <div class="clock" id="clock">14<span>:32</span></div>
+      <div class="phrase-line" id="phraseLine">📌 "Un mate a tiempo es una tarde salvada."</div>
+    </div>
+  </div>
+
+  <div class="news-ribbon">
+    <span class="news-tag">⚽ Próximo partido</span>
+    <span class="news-text" id="newsText">Cargando cotizaciones...</span>
+  </div>
+
+  <div class="pending-label" id="pendingLabel">📋 Pendientes de hoy</div>
+
+  <div class="notes-row" id="notes">
+    <div class="note" id="pendingLoading" style="background: var(--cream);">
+      <div class="note-time">···</div>
+      <div class="note-title">Cargando</div>
+      <div class="note-who">CasaHub</div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="overlay">
+    <div class="overlay-close" id="d-close">✕</div>
+    <div class="full-postit">
+      <div class="detail-cat" id="d-cat">Colegio</div>
+      <div class="detail-time" id="d-time">16:30</div>
+      <div class="detail-title" id="d-title">Buscar a Lorenzo</div>
+      <div class="detail-desc" id="d-desc">Descripción</div>
+      <div class="detail-who" id="d-who">Asignado a</div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="weatherOverlay">
+    <div class="overlay-close" id="weatherClose">✕</div>
+    <div class="full-postit">
+      <div class="wf-header">
+        <div class="wf-icon" id="wf-icon">☀️</div>
+        <div>
+          <div class="wf-temp" id="wf-temp">--°</div>
+          <div class="wf-cond" id="wf-cond">Despejado</div>
+        </div>
+      </div>
+      <div class="wf-meta">
+        <div>Sensación <b id="wf-feels">--°</b></div>
+        <div>Máx <b id="wf-max">--°</b> · Mín <b id="wf-min">--°</b></div>
+      </div>
+      <div class="wf-forecast-title">📅 Próximos días</div>
+      <div class="wf-forecast" id="wf-forecast"></div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="sportsOverlay">
+    <div class="overlay-close" id="sportsClose">✕</div>
+    <div class="full-postit-row" id="sportsRow"></div>
+  </div>
+
+  <audio id="radioAudio"></audio>
+
+  <div class="tv-window" id="tvWindow">
+    <div class="tv-close" id="tvClose">✕</div>
+    <iframe id="tvIframe" src="" title="TN en vivo" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
+</div>
+
+<script>
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  const weekdays = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function tick(){
+    const now = new Date();
+    document.getElementById('weekday').textContent = weekdays[now.getDay()];
+    document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
+    document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
+  }
+  tick();
+  setInterval(tick, 1000 * 10);
+
+  // ---- frase del día: rota sola, una distinta por día ----
+  const dailyPhrases = [
+    '"Un mate a tiempo es una tarde salvada."',
+    '"No hay lunes que no llegue ni plazo que no se cumpla."',
+    '"Vísteme despacio que estoy apurado."',
+    '"El que no arriesga, no cruza el Riachuelo."',
+    '"A caballo regalado no se le mira el diente, pero se le pone la vacuna."',
+    '"Más vale paso que dure y no trote que canse."',
+    '"Cada casa es un mundo, y la nuestra anda bastante bien."',
+    '"El mate compartido sabe distinto."',
+    '"No hay mal que dure cien años, ni casa que los aguante sin arreglos."',
+    '"Donde hay ganas, hay mate caliente."'
+  ];
+  function updateDailyPhrase() {
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    const phrase = dailyPhrases[dayOfYear % dailyPhrases.length];
+    document.getElementById('phraseLine').innerHTML = '📌 ' + phrase;
+  }
+  updateDailyPhrase();
+  setInterval(updateDailyPhrase, 1000 * 60 * 60); // revisa cada hora, cambia al cruzar de día
+
+  const overlay = document.getElementById('overlay');
+  document.getElementById('notes').addEventListener('click', (e) => {
+    const note = e.target.closest('.note');
+    if(!note || note.id === 'radioNoteBtn') return;
+    document.getElementById('d-cat').textContent = note.dataset.cat;
+    document.getElementById('d-time').textContent = note.dataset.time;
+    document.getElementById('d-title').textContent = note.dataset.title;
+    document.getElementById('d-desc').textContent = note.dataset.desc;
+    document.getElementById('d-who').textContent = note.dataset.who;
+    overlay.classList.add('show');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      overlay.classList.remove('show');
+    }
+  });
+
+  document.getElementById('nightToggle').addEventListener('click', () => {
+    document.getElementById('device').classList.toggle('night');
+  });
+
+  // ---- modo noche automático, sin tocar nada ----
+  const NIGHT_START_HOUR = 23; // se atenúa a partir de esta hora
+  const NIGHT_END_HOUR = 7;    // vuelve a brillo normal a partir de esta hora
+
+  function updateAutoNightMode() {
+    const hour = new Date().getHours();
+    const isNight = hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+    document.getElementById('device').classList.toggle('night', isNight);
+  }
+  updateAutoNightMode();
+  setInterval(updateAutoNightMode, 1000 * 60); // revisa cada minuto
+
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+
+  const LAT = -34.5461;
+  const LON = -58.5580;
+  const weekShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  function weatherInfo(code, isDay) {
+    if (code === 0) return { ic: isDay ? '☀️' : '🌙', txt: 'Despejado' };
+    if (code === 1 || code === 2) return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Parcialmente nublado' };
+    if (code === 3) return { ic: '☁️', txt: 'Nublado' };
+    if (code === 45 || code === 48) return { ic: '🌫️', txt: 'Niebla' };
+    if ([51,53,55,56,57].includes(code)) return { ic: '🌦️', txt: 'Llovizna' };
+    if ([61,63,65,66,67].includes(code)) return { ic: '🌧️', txt: 'Lluvia' };
+    if ([71,73,75,77].includes(code)) return { ic: '❄️', txt: 'Nieve' };
+    if ([80,81,82].includes(code)) return { ic: '🌦️', txt: 'Chubascos' };
+    if ([95,96,99].includes(code)) return { ic: '⛈️', txt: 'Tormenta' };
+    return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Variable' };
+  }
+
+  async function loadWeather() {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const isDayNow = data.current.is_day === 1;
+      const nowInfo = weatherInfo(data.current.weather_code, isDayNow);
+      document.getElementById('w-icon-now').textContent = nowInfo.ic;
+      document.getElementById('w-temp-now').textContent = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('w-cond-now').textContent = nowInfo.txt;
+      document.getElementById('w-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+
+      const days = data.daily.time;
+      const codes = data.daily.weather_code;
+      const maxs = data.daily.temperature_2m_max;
+      const mins = data.daily.temperature_2m_min;
+
+      // ---- tarjeta compacta: máx/mín de hoy ----
+      document.getElementById('w-max-today').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('w-min-today').textContent = Math.round(mins[0]) + '°';
+
+      // ---- aviso de lluvia/paraguas ----
+      const rainCodes = [51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99];
+      const rainTag = document.getElementById('rainTag');
+      rainTag.textContent = rainCodes.includes(codes[0]) ? '☔ Llevate paraguas' : '';
+
+      // ---- clima expandido (pantalla completa) ----
+      document.getElementById('wf-icon').textContent = nowInfo.ic;
+      document.getElementById('wf-temp').textContent = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('wf-cond').textContent = nowInfo.txt;
+      document.getElementById('wf-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+      document.getElementById('wf-max').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('wf-min').textContent = Math.round(mins[0]) + '°';
+
+      const forecastEl = document.getElementById('wf-forecast');
+      forecastEl.innerHTML = '';
+      for (let i = 0; i < days.length; i++) {
+        // los días futuros muestran el ícono "de día" (representan el pronóstico general del día)
+        const info = weatherInfo(codes[i], true);
+        const dayLabel = i === 0 ? 'Hoy' : weekShort[new Date(days[i] + 'T00:00:00').getDay()];
+        const card = document.createElement('div');
+        card.className = 'wf-day-card';
+        card.innerHTML = `
+          <div class="d">${dayLabel}</div>
+          <div class="i">${info.ic}</div>
+          <div class="r">${Math.round(maxs[i])}° <span class="lo">${Math.round(mins[i])}°</span></div>
+        `;
+        forecastEl.appendChild(card);
+      }
+    } catch (err) {
+      document.getElementById('w-cond-now').textContent = 'Sin conexión';
+    }
+  }
+
+  loadWeather();
+  setInterval(loadWeather, 1000 * 60 * 30);
+
+  const weatherOverlay = document.getElementById('weatherOverlay');
+  document.getElementById('weatherNoteBtn').addEventListener('click', () => {
+    weatherOverlay.classList.add('show');
+  });
+  weatherOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      weatherOverlay.classList.remove('show');
+    }
+  });
+
+  // ---- ticker: próximos partidos (TheSportsDB) ----
+  let sportsItems = [];
+  let tickerIndex = 0;
+
+  // ---- próximo partido de un equipo, vía TheSportsDB (gratis, sin key) ----
+  const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+  // guarda la última info completa de cada equipo (para armar el post-it expandido)
+  const matchInfo = { '135173': null, '133738': null };
+  const lastResultInfo = { '135173': null, '133738': null };
+
+  async function fetchNextMatch(teamId, teamLabel, emoji) {
+    const cacheKey = 'nextMatch_' + teamId;
+    const cacheDataKey = 'nextMatchData_' + teamId;
+    try {
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
+      const data = await res.json();
+      const ev = data.events && data.events[0];
+      if (!ev) throw new Error('Sin evento');
+
+      // strTimestamp viene en UTC; lo pasamos a hora Argentina para que
+      // no importe en qué país se juegue el partido
+      const utcDate = new Date(ev.strTimestamp + 'Z');
+      const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      const dayName = weekShortEs2[argDate.getDay()];
+      const dd = String(argDate.getDate()).padStart(2, '0');
+      const hh = String(argDate.getHours()).padStart(2, '0');
+      const mm = String(argDate.getMinutes()).padStart(2, '0');
+
+      const isHome = ev.strHomeTeam === teamLabel;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+      const vsText = isHome ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
+
+      const info = {
+        vsText,
+        league: ev.strLeague || '',
+        venue: ev.strVenue || '',
+        dateTimeText: `${dayName} ${dd} · ${hh}:${mm}hs`,
+        teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge,
+        kickoffMs: utcDate.getTime()
+      };
+
+      const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
+      localStorage.setItem(cacheKey, text); // guarda el último bueno por si la API falla después
+      localStorage.setItem(cacheDataKey, JSON.stringify(info));
+      matchInfo[teamId] = info;
+      return { text, kickoffMs: utcDate.getTime() };
+    } catch (err) {
+      console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
+      const cached = localStorage.getItem(cacheKey);
+      const cachedData = localStorage.getItem(cacheDataKey);
+      if (cachedData) matchInfo[teamId] = JSON.parse(cachedData);
+      return { text: cached || null, kickoffMs: null };
+    }
+  }
+
+  // ---- último resultado jugado, mismo patrón que fetchNextMatch ----
+  async function fetchLastResult(teamId, teamLabel) {
+    const cacheKey = 'lastResult_' + teamId;
+    try {
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${teamId}`);
+      const data = await res.json();
+      const ev = data.results && data.results[0];
+      if (!ev || ev.intHomeScore === null || ev.intHomeScore === undefined) throw new Error('Sin resultado');
+
+      const isHome = ev.strHomeTeam === teamLabel;
+      const teamScore = isHome ? ev.intHomeScore : ev.intAwayScore;
+      const rivalScore = isHome ? ev.intAwayScore : ev.intHomeScore;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+
+      let resultEmoji = '🤝';
+      if (Number(teamScore) > Number(rivalScore)) resultEmoji = '✅';
+      else if (Number(teamScore) < Number(rivalScore)) resultEmoji = '❌';
+
+      const text = `${resultEmoji} Último: ${teamLabel} ${teamScore} - ${rivalScore} ${rival}`;
+      localStorage.setItem(cacheKey, text);
+      lastResultInfo[teamId] = text;
+      return text;
+    } catch (err) {
+      console.warn('Último resultado sin conexión, uso guardado:', teamLabel, err.message);
+      const cached = localStorage.getItem(cacheKey);
+      lastResultInfo[teamId] = cached || null;
+      return cached || null;
+    }
+  }
+
+  // guarda, por equipo, para qué horario de partido ya programamos la consulta
+  // siguiente — así no reprogramamos de más si todavía es el mismo partido
+  const scheduledFor = { '135173': null, '133738': null };
+
+  function scheduleNextCheckFor(teamId, teamLabel, emoji, kickoffMs) {
+    if (!kickoffMs || scheduledFor[teamId] === kickoffMs) return; // ya programado para este partido
+    scheduledFor[teamId] = kickoffMs;
+
+    const checkAt = kickoffMs + 1000 * 60 * 60 * 3; // 3 hs después del inicio, de sobra para que termine
+    const delay = checkAt - Date.now();
+    if (delay <= 0) return; // ya pasó, la rutina periódica lo va a agarrar igual
+
+    setTimeout(async () => {
+      // justo acá el partido anterior ya terminó: pedimos el resultado Y el próximo partido juntos
+      const [result] = await Promise.all([
+        fetchNextMatch(teamId, teamLabel, emoji),
+        fetchLastResult(teamId, teamLabel)
+      ]);
+      if (result.text) {
+        sportsItems = sportsItems.filter((t) => !t.includes(teamLabel));
+        sportsItems.push(result.text);
+      }
+      renderSportsCards();
+      scheduleNextCheckFor(teamId, teamLabel, emoji, result.kickoffMs); // programa el próximo partido
+    }, delay);
+  }
+
+  async function loadSports() {
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const results = await Promise.all(
+      teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
+    );
+    await Promise.all(teams.map((t) => fetchLastResult(t.id, t.label)));
+    sportsItems = results.map((r) => r.text).filter(Boolean);
+    results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
+    renderSportsCards();
+  }
+
+  // ---- arma los dos post-its del desplegable de fútbol ----
+  function renderSportsCards() {
+    const row = document.getElementById('sportsRow');
+    if (!row) return;
+    row.innerHTML = '';
+
+    const teamIds = ['135173', '133738'];
+    teamIds.forEach((id) => {
+      const info = matchInfo[id];
+      const lastResult = lastResultInfo[id];
+      const card = document.createElement('div');
+      card.className = 'full-postit sports-postit';
+
+      if (!info) {
+        card.innerHTML = `<div class="sports-league">Sin datos por ahora</div>`;
+        row.appendChild(card);
+        return;
+      }
+
+      card.innerHTML = `
+        <div class="sports-league">${info.league}</div>
+        <div class="sports-teams">
+          <img class="sports-badge" src="${info.teamBadge || ''}" onerror="this.style.display='none'">
+          <div class="sports-vs">vs</div>
+          <img class="sports-badge" src="${info.rivalBadge || ''}" onerror="this.style.display='none'">
+        </div>
+        <div class="sports-matchup">${info.vsText}</div>
+        <div class="sports-datetime">${info.dateTimeText}</div>
+        <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
+        ${lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : ''}
+      `;
+      row.appendChild(card);
+    });
+  }
+
+  function showNextTickerItem() {
+    if (!sportsItems.length) return;
+    const el = document.getElementById('newsText');
+    el.style.opacity = 0;
+    setTimeout(() => {
+      el.textContent = sportsItems[tickerIndex % sportsItems.length];
+      tickerIndex++;
+      el.style.opacity = 1;
+    }, 400);
+  }
+
+  loadSports();
+  setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
+  setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
+
+  // ---- red de seguridad: si el timer puntual se perdió (por una recarga de
+  // página, por ejemplo), esto se da cuenta solo y refresca igual ----
+  async function checkStaleMatches() {
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const now = Date.now();
+    for (const t of teams) {
+      const info = matchInfo[t.id];
+      const yaDeberiaHaberTerminado = info && info.kickoffMs && now > info.kickoffMs + 1000 * 60 * 60 * 3;
+      if (!yaDeberiaHaberTerminado) continue;
+
+      console.warn('Partido de ' + t.label + ' vencido sin refrescar, corrigiendo ahora');
+      const [result] = await Promise.all([
+        fetchNextMatch(t.id, t.label, t.emoji),
+        fetchLastResult(t.id, t.label)
+      ]);
+      if (result.text) {
+        sportsItems = sportsItems.filter((x) => !x.includes(t.label));
+        sportsItems.push(result.text);
+      }
+      renderSportsCards();
+      scheduleNextCheckFor(t.id, t.label, t.emoji, result.kickoffMs);
+    }
+  }
+  setInterval(checkStaleMatches, 1000 * 60 * 15); // revisa cada 15 min
+
+  const sportsOverlay = document.getElementById('sportsOverlay');
+  document.querySelector('.news-ribbon').style.cursor = 'pointer';
+  document.querySelector('.news-ribbon').addEventListener('click', () => {
+    sportsOverlay.classList.add('show');
+  });
+  sportsOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      sportsOverlay.classList.remove('show');
+    }
+  });
+
+  // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
+  let trainDetailText = 'Sin datos por ahora.';
+  let trainStatusLabel = 'Consultando...';
+
+  async function tryFetchTrain(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function loadTrainStatus() {
+    const pageUrl = 'https://www.argentina.gob.ar/transporte/trenes-argentinos/modificaciones-en-el-servicio-y-novedades';
+    const proxies = [
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(pageUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(pageUrl),
+      'https://corsproxy.io/?url=' + encodeURIComponent(pageUrl)
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const html = await tryFetchTrain(proxyUrl);
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const bodyText = doc.body.textContent.replace(/\s+/g, ' ');
+        const idx = bodyText.toLowerCase().indexOf('mitre');
+
+        let status = 'verde';
+        let detail = 'No aparece ninguna novedad activa para la línea Mitre: circularía con normalidad.';
+
+        if (idx !== -1) {
+          const context = bodyText.substring(Math.max(0, idx - 200), idx + 300);
+          const contextLower = context.toLowerCase();
+          if (contextLower.includes('interrump') || contextLower.includes('suspend')) {
+            status = 'rojo';
+          } else if (contextLower.includes('demora') || contextLower.includes('limitad') || contextLower.includes('modificac') || contextLower.includes('obras')) {
+            status = 'amarillo';
+          }
+          detail = context.trim();
+        }
+
+        applyTrainStatus(status, detail);
+        return;
+      } catch (err) {
+        console.warn('Proxy tren falló:', proxyUrl, err.message);
+        continue;
+      }
+    }
+    applyTrainStatus('gris', 'No se pudo consultar el estado en este momento.');
+  }
+
+  function applyTrainStatus(status, detail) {
+    const labels = { verde: 'Circula con normalidad', amarillo: 'Con demoras/obras', rojo: 'Interrumpido', gris: 'Sin datos ahora' };
+    const trainMini = document.getElementById('trainMini');
+    trainMini.classList.remove('train-verde', 'train-amarillo', 'train-rojo', 'train-gris');
+    trainMini.classList.add('train-' + status);
+    trainDetailText = detail;
+    trainStatusLabel = labels[status];
+  }
+
+  document.getElementById('trainMini').addEventListener('click', () => {
+    document.getElementById('d-cat').textContent = 'Tren Mitre';
+    document.getElementById('d-time').textContent = trainStatusLabel;
+    document.getElementById('d-title').textContent = '🚆 Línea Mitre';
+    document.getElementById('d-desc').textContent = trainDetailText;
+    document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
+    overlay.classList.add('show');
+  });
+
+  loadTrainStatus();
+  setInterval(loadTrainStatus, 1000 * 60 * 15); // revisa cada 15 min
+
+  // ---- pendientes de hoy/mañana: datos reales de CasaHub vía Cloud Function ----
+  const CASAHUB_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getTodayItems';
+
+  const typeStyle = {
+    activity: { bg: 'var(--sky)', cat: 'Actividad', icon: '📅' },
+    discount: { bg: 'var(--sage)', cat: 'Descuento', icon: '🛒' },
+    reminder: { bg: 'var(--mustard)', cat: 'Finanzas', icon: '💳' },
+    schoolTask: { bg: 'var(--teal)', cat: 'Colegio', icon: '📚' },
+    healthAppointment: { bg: 'var(--lilac)', cat: 'Salud', icon: '🏥' }
+  };
+
+  const categoryOrder = ['activity', 'healthAppointment', 'schoolTask', 'reminder', 'discount'];
+  const rotations = ['-2.5deg', '1.8deg', '-1.2deg', '2.2deg', '-1.6deg'];
+
+  function buildSingleNote(type, entry, index) {
+    const style = typeStyle[type];
+    const note = document.createElement('div');
+    note.className = 'note dynamic-pending';
+    note.style.background = entry.done ? 'var(--sage)' : style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+    note.dataset.cat = style.cat;
+    note.dataset.time = entry.time;
+    note.dataset.title = entry.title;
+    note.dataset.desc = entry.desc || `${entry.title}${entry.who ? ' — ' + entry.who : ''}`;
+    note.dataset.who = entry.who ? `${style.cat}: ${entry.who}` : style.cat;
+    note.innerHTML = `
+      <div class="note-time">${entry.time}</div>
+      <div class="note-title">${entry.title}</div>
+      <div class="note-who">${entry.who || style.cat}</div>
+    `;
+    return note;
+  }
+
+  function buildGroupedNote(type, entries, index) {
+    const style = typeStyle[type];
+    const note = document.createElement('div');
+    note.className = 'note dynamic-pending grouped';
+    note.style.background = style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+
+    const listText = entries
+      .map((e) => `${style.icon} ${e.title}${e.who ? ' — ' + e.who : ''}${e.time ? ' (' + e.time + ')' : ''}`)
+      .join('\n');
+
+    note.dataset.cat = style.cat;
+    note.dataset.time = style.cat;
+    note.dataset.title = `${entries.length} ${style.cat.toLowerCase()}s`;
+    note.dataset.desc = listText;
+    note.dataset.who = style.cat;
+
+    note.innerHTML = `
+      <div class="note-count-badge">${entries.length}</div>
+      <div class="note-time">${style.icon} ${style.cat}</div>
+      <div class="note-title">Ver ${entries.length} ${entries.length > 1 ? 'ítems' : 'ítem'}</div>
+      <div class="note-who">Tocá para ver la lista</div>
+    `;
+    return note;
+  }
+
+  function buildCategoryNotes(categories) {
+    const notes = [];
+    let index = 0;
+    categoryOrder.forEach((type) => {
+      const entries = categories[type] || [];
+      if (!entries.length) return;
+      if (entries.length === 1) {
+        notes.push(buildSingleNote(type, entries[0], index));
+      } else {
+        notes.push(buildGroupedNote(type, entries, index));
+      }
+      index++;
+    });
+    return notes;
+  }
+
+  async function loadPendingToday() {
+    const loadingNote = document.getElementById('pendingLoading');
+    try {
+      const res = await fetch(CASAHUB_FUNCTION_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const categories = data.categories || {};
+
+      // Actualiza el título de la sección según el modo hoy/mañana
+      const label = document.getElementById('pendingLabel');
+      if (data.mode === 'tomorrow') {
+        label.textContent = `📋 Para mañana, ${data.dayLabel}`;
+      } else {
+        label.textContent = '📋 Pendientes de hoy';
+      }
+
+      if (loadingNote) loadingNote.remove();
+
+      // Borra las tarjetas de la consulta anterior antes de poner las nuevas
+      document.querySelectorAll('.dynamic-pending').forEach((el) => el.remove());
+
+      const notes = buildCategoryNotes(categories);
+      const notesRow = document.getElementById('notes');
+
+      if (!notes.length) {
+        const empty = document.createElement('div');
+        empty.className = 'note dynamic-pending';
+        empty.style.background = 'var(--cream)';
+        empty.innerHTML = `<div class="note-time">${data.mode === 'tomorrow' ? 'Mañana' : 'Hoy'}</div><div class="note-title">Nada pendiente 🎉</div><div class="note-who">CasaHub</div>`;
+        notesRow.appendChild(empty);
+        return;
+      }
+
+      notes.forEach((note) => notesRow.appendChild(note));
+    } catch (err) {
+      console.warn('No se pudo cargar CasaHub:', err.message);
+      if (loadingNote) {
+        loadingNote.querySelector('.note-title').textContent = 'Sin conexión';
+        loadingNote.querySelector('.note-who').textContent = 'CasaHub';
+      }
+    }
+  }
+
+  loadPendingToday(); // carga al abrir el panel
+  setInterval(loadPendingToday, 1000 * 60 * 30); // y refresca cada 30 min
+
+  // además, un pedido puntual justo a las 21:00 en punto (hora del celu),
+  // para que el switch hoy/mañana no dependa de en qué momento del
+  // ciclo de 30 min caiga
+  function scheduleExact21() {
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(21, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1); // ya pasó, programar para mañana
+    setTimeout(() => {
+      loadPendingToday();
+      scheduleExact21(); // se reprograma solo para el día siguiente
+    }, target - now);
+  }
+  scheduleExact21();
+
+  // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
+  const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
+  let hlsInstance = null;
+  let radioPlaying = false;
+  const radioAudio = document.getElementById('radioAudio');
+
+  function playMega() {
+    if (window.Hls && Hls.isSupported()) {
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(MEGA_URL);
+      hlsInstance.attachMedia(radioAudio);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => radioAudio.play().catch(() => {}));
+    } else {
+      radioAudio.src = MEGA_URL;
+      radioAudio.play().catch(() => {});
+    }
+    radioPlaying = true;
+    document.getElementById('radioMiniIcon').textContent = '⏸';
+    document.getElementById('radioNoteBtn').classList.add('playing');
+  }
+
+  function stopMega() {
+    radioAudio.pause();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    radioPlaying = false;
+    document.getElementById('radioMiniIcon').textContent = '📻';
+    document.getElementById('radioNoteBtn').classList.remove('playing');
+  }
+
+  document.getElementById('radioNoteBtn').addEventListener('click', () => {
+    if (radioPlaying) stopMega(); else playMega();
+  });
+
+  // ---- TN en vivo, canal oficial de YouTube, ventanita flotante ----
+  const TN_CHANNEL_ID = 'UCj6PcyLvpnIRT_2W_mwa9Aw';
+  const tvWindow = document.getElementById('tvWindow');
+  const tvIframe = document.getElementById('tvIframe');
+  const tvMini = document.getElementById('tvMini');
+  let tvOn = false;
+
+  function playTV() {
+    tvIframe.src = `https://www.youtube.com/embed/live_stream?channel=${TN_CHANNEL_ID}&autoplay=1`;
+    tvWindow.classList.add('show');
+    tvMini.classList.add('playing');
+    tvOn = true;
+  }
+
+  function stopTV() {
+    tvIframe.src = ''; // corta la reproducción, no solo la esconde
+    tvWindow.classList.remove('show');
+    tvMini.classList.remove('playing');
+    tvOn = false;
+  }
+
+  tvMini.addEventListener('click', () => {
+    if (tvOn) stopTV(); else playTV();
+  });
+  document.getElementById('tvClose').addEventListener('click', stopTV);
+</script>
+
+</body>
+</html>
