@@ -376,15 +376,24 @@
   .pending-label {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     font-family: 'Kalam', cursive;
-    font-size: 22px;
-    color: var(--ink);
-    background: var(--mustard);
-    padding: 10px 30px;
-    border-radius: 30px;
-    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+    font-size: 24px;
+    font-weight: 700;
+    color: #E8C978;
+    background: linear-gradient(135deg, #2E3D33, #1a241c);
+    padding: 14px 40px;
+    border-radius: 40px;
+    border: 2px solid rgba(232,181,77,0.45);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(232,181,77,0.12);
+    letter-spacing: 0.02em;
     transform: rotate(-0.6deg);
+  }
+  .pending-label::before,
+  .pending-label::after {
+    content: '✦';
+    color: rgba(232,181,77,0.5);
+    font-size: 15px;
   }
 
   .notes-row {
@@ -606,32 +615,33 @@
 
   .detail-cat {
     display: inline-block;
-    font-size: 19px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 9px 22px;
-    border-radius: 30px;
+    padding: 12px 28px;
+    border-radius: 34px;
     background: rgba(43,34,16,0.08);
   }
   .detail-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 25px;
+    font-size: 32px;
     font-weight: 600;
     color: var(--ink-dim);
-    margin-top: 26px;
+    margin-top: 22px;
   }
+  .detail-time.hidden { display: none; }
   .detail-title {
     font-family: 'Kalam', cursive;
-    font-size: 48px;
-    margin-top: 12px;
-    line-height: 1.2;
+    font-size: 62px;
+    margin-top: 14px;
+    line-height: 1.15;
   }
   .detail-desc {
     font-size: 25px;
     color: var(--ink-dim);
     line-height: 1.7;
-    margin-top: 26px;
+    margin-top: 18px;
     white-space: pre-line;
   }
   .detail-desc > div { margin-bottom: 14px; }
@@ -639,21 +649,21 @@
   .desc-row {
     display: flex;
     align-items: flex-start;
-    gap: 18px;
+    gap: 22px;
     background: rgba(43,34,16,0.05);
-    border-radius: 16px;
-    padding: 20px 24px;
+    border-radius: 18px;
+    padding: 26px 28px;
     margin-bottom: 16px;
   }
   .desc-row-today {
     background: rgba(194,105,75,0.12);
     border: 2px solid rgba(194,105,75,0.35);
   }
-  .desc-row-icon { font-size: 32px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .desc-row-icon { font-size: 44px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
   .desc-row-text { flex: 1; }
   .desc-row-title {
     font-family: 'Kalam', cursive;
-    font-size: 26px;
+    font-size: 34px;
     color: var(--ink);
     line-height: 1.25;
   }
@@ -662,19 +672,19 @@
     background: var(--brick);
     color: #fff;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
     letter-spacing: 0.03em;
-    padding: 3px 10px;
-    border-radius: 14px;
-    margin-left: 8px;
+    padding: 4px 13px;
+    border-radius: 16px;
+    margin-left: 10px;
     vertical-align: middle;
   }
   .desc-row-sub {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 18px;
+    font-size: 23px;
     color: var(--ink-dim);
-    margin-top: 6px;
+    margin-top: 8px;
   }
 
   .detail-who {
@@ -1013,7 +1023,16 @@
     const dCat = document.getElementById('d-cat');
     dCat.textContent = note.dataset.cat;
     dCat.style.background = typeStyle[note.dataset.type] ? typeStyle[note.dataset.type].bg : 'rgba(43,34,16,0.08)';
-    document.getElementById('d-time').textContent = note.dataset.time;
+
+    const dTime = document.getElementById('d-time');
+    if (note.dataset.entriesJson) {
+      // en las agrupadas, el "time" es solo el nombre de la categoría repetido — lo ocultamos
+      dTime.classList.add('hidden');
+    } else {
+      dTime.classList.remove('hidden');
+      dTime.textContent = note.dataset.time;
+    }
+
     document.getElementById('d-title').textContent = note.dataset.title;
     document.getElementById('d-who').textContent = note.dataset.who;
 
@@ -1469,7 +1488,10 @@
 
   document.getElementById('trainMini').addEventListener('click', () => {
     document.getElementById('d-cat').textContent = 'Tren Mitre';
-    document.getElementById('d-time').textContent = trainStatusLabel;
+    document.getElementById('d-cat').style.background = 'rgba(43,34,16,0.08)';
+    const dTime = document.getElementById('d-time');
+    dTime.classList.remove('hidden');
+    dTime.textContent = trainStatusLabel;
     document.getElementById('d-title').textContent = '🚆 Línea Mitre';
     document.getElementById('d-desc').textContent = trainDetailText;
     document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
