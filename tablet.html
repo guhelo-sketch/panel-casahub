@@ -154,8 +154,16 @@
   .mini-btn.train-rojo { background: #E3A794; }
   .mini-btn.train-gris { background: #D8D3C4; }
 
+  .train-square-row { display: flex; justify-content: center; }
+  .train-square {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+  }
+  .train-square .ic { font-size: 30px; }
+
   .weather-note {
-    background: var(--sky);
+    background: #A6C1BE;
     width: 44%;
     padding: 22px 26px 18px;
     transform: rotate(-1.3deg);
@@ -192,7 +200,7 @@
   .weather-feels b { color: var(--ink); font-size: 21px; }
 
   .clock-note {
-    background: var(--cream);
+    background: #D9CBA3;
     width: 34%;
     padding: 18px 28px 20px;
     transform: rotate(1.4deg);
@@ -723,11 +731,6 @@
         <div class="lbl">MEGA</div>
       </div>
 
-      <div class="mini-btn train-gris" id="trainMini">
-        <div class="ic" id="trainMiniIcon">🚆</div>
-        <div class="lbl">MITRE</div>
-      </div>
-
       <div class="mini-btn" id="tvMini">
         <div class="ic">📺</div>
         <div class="lbl">TN</div>
@@ -743,8 +746,13 @@
   </div>
 
   <div class="news-ribbon">
-    <span class="news-tag">⚽ Próximo partido</span>
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
+  </div>
+
+  <div class="train-square-row">
+    <div class="mini-btn train-square train-gris" id="trainMini">
+      <div class="ic" id="trainMiniIcon">🚆</div>
+    </div>
   </div>
 
   <div class="pending-label" id="pendingLabel">📋 Pendientes de hoy</div>
