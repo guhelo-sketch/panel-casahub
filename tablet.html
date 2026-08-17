@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Panel del día</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
   :root {
@@ -40,6 +40,8 @@
     width: 100vw;
     height: 100vh;
     background:
+      radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1.3px) 0 0/5px 5px,
+      radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1.3px) 2px 3px/7px 7px,
       radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
       repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
     border-radius: 0;
@@ -230,30 +232,42 @@
   .news-ribbon {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    background: rgba(241,236,221,0.92);
-    border-radius: 8px;
-    padding: 16px 26px;
-    transform: rotate(-0.4deg);
-    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+    gap: 0;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1.4px) 0 0/6px 6px,
+      #0a0a0a;
+    border-radius: 6px;
+    padding: 14px 0;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.4);
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    border: 3px solid #1a1a1a;
   }
   .news-tag {
-    font-family: 'Kalam', cursive;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--brick);
+    font-family: 'VT323', monospace;
+    font-size: 30px;
+    font-weight: 400;
+    color: #FFB300;
+    text-shadow: 0 0 6px rgba(255,179,0,0.6);
     flex-shrink: 0;
     white-space: nowrap;
+    padding-left: 24px;
   }
   .news-text {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--ink);
+    font-family: 'VT323', monospace;
+    font-size: 30px;
+    font-weight: 400;
+    color: #FFB300;
+    text-shadow: 0 0 6px rgba(255,179,0,0.6);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 0.4s ease;
+    display: inline-block;
+    padding-left: 40px;
+    animation: ledScroll 22s linear infinite;
+  }
+  @keyframes ledScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
   }
 
   .radio-station-btn {
@@ -392,6 +406,40 @@
     align-items: flex-start;
     padding: 90px 24px 50px;
   }
+
+  /* fondo de cancha de fútbol para el desplegable de partidos */
+  #sportsOverlay {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #2E7D32 0px, #2E7D32 90px,
+        #348A38 90px, #348A38 180px
+      );
+    align-items: center;
+  }
+  #sportsOverlay::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 340px;
+    height: 340px;
+    border: 4px solid rgba(255,255,255,0.35);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  #sportsOverlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 4px;
+    height: 100%;
+    background: rgba(255,255,255,0.35);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
   .overlay-full.show { opacity: 1; pointer-events: auto; }
   .overlay-full::-webkit-scrollbar { width: 6px; }
   .overlay-full::-webkit-scrollbar-thumb { background: rgba(241,236,221,0.25); border-radius: 3px; }
@@ -420,11 +468,11 @@
 
   .full-postit {
     width: 100%;
-    max-width: 640px;
+    max-width: 900px;
     background: var(--cream);
-    border-radius: 16px;
-    padding: 42px 36px 46px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    border-radius: 20px;
+    padding: 60px 56px 64px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
     position: relative;
     color: var(--ink);
   }
@@ -441,37 +489,37 @@
 
   .detail-cat {
     display: inline-block;
-    font-size: 13px;
+    font-size: 19px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 6px 16px;
-    border-radius: 24px;
+    padding: 9px 22px;
+    border-radius: 30px;
     background: rgba(43,34,16,0.08);
   }
   .detail-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 17px;
+    font-size: 25px;
     font-weight: 600;
     color: var(--ink-dim);
-    margin-top: 18px;
+    margin-top: 26px;
   }
   .detail-title {
     font-family: 'Kalam', cursive;
-    font-size: 32px;
-    margin-top: 8px;
+    font-size: 48px;
+    margin-top: 12px;
     line-height: 1.2;
   }
   .detail-desc {
-    font-size: 17px;
+    font-size: 25px;
     color: var(--ink-dim);
     line-height: 1.7;
-    margin-top: 18px;
+    margin-top: 26px;
     white-space: pre-line;
   }
   .detail-who {
-    margin-top: 22px;
-    font-size: 15px;
+    margin-top: 30px;
+    font-size: 22px;
     font-weight: 700;
   }
 
@@ -486,72 +534,72 @@
   .weather-minmax b { color: var(--ink); font-weight: 700; }
 
   .wf-header { display: flex; align-items: center; gap: 20px; }
-  .wf-icon { font-size: 60px; line-height: 1; }
+  .wf-icon { font-size: 92px; line-height: 1; }
   .wf-temp {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 52px;
+    font-size: 80px;
     line-height: 1;
   }
-  .wf-cond { font-size: 17px; color: var(--ink-dim); margin-top: 4px; }
+  .wf-cond { font-size: 26px; color: var(--ink-dim); margin-top: 6px; }
   .wf-meta {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1.5px dashed rgba(43,34,16,0.18);
-    font-size: 16px;
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    font-size: 24px;
     color: var(--ink-dim);
     display: flex;
-    gap: 24px;
+    gap: 36px;
   }
-  .wf-meta b { color: var(--ink); font-size: 18px; }
+  .wf-meta b { color: var(--ink); font-size: 28px; }
   .wf-forecast-title {
     font-family: 'Kalam', cursive;
-    font-size: 20px;
-    margin-top: 28px;
-    margin-bottom: 12px;
+    font-size: 30px;
+    margin-top: 40px;
+    margin-bottom: 18px;
   }
-  .wf-forecast { display: flex; gap: 12px; flex-wrap: wrap; }
+  .wf-forecast { display: flex; gap: 18px; flex-wrap: wrap; }
   .wf-day-card {
     flex: 1;
-    min-width: 90px;
+    min-width: 130px;
     background: rgba(43,34,16,0.05);
-    border-radius: 12px;
-    padding: 14px 8px;
+    border-radius: 16px;
+    padding: 22px 12px;
     text-align: center;
   }
   .wf-day-card .d {
-    font-size: 12px;
+    font-size: 17px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 700;
     color: var(--ink-dim);
   }
-  .wf-day-card .i { font-size: 30px; margin: 8px 0; }
+  .wf-day-card .i { font-size: 44px; margin: 12px 0; }
   .wf-day-card .r {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 15px;
+    font-size: 22px;
     font-weight: 700;
   }
   .wf-day-card .r .lo { color: var(--ink-dim); font-weight: 400; }
 
   .full-postit-row {
     width: 100%;
-    max-width: 920px;
+    max-width: 1300px;
     display: flex;
     flex-wrap: wrap;
-    gap: 28px;
+    gap: 44px;
     justify-content: center;
   }
   .sports-postit {
     flex: 1;
-    min-width: 300px;
-    max-width: 420px;
+    min-width: 420px;
+    max-width: 600px;
   }
   .sports-postit:nth-child(1) { transform: rotate(-1.4deg); }
   .sports-postit:nth-child(2) { transform: rotate(1.2deg); }
 
   .sports-league {
-    font-size: 13px;
+    font-size: 19px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -561,82 +609,86 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    margin-top: 16px;
+    gap: 28px;
+    margin-top: 24px;
   }
   .sports-badge {
-    width: 64px;
-    height: 64px;
+    width: 100px;
+    height: 100px;
     object-fit: contain;
   }
   .sports-vs {
     font-family: 'Kalam', cursive;
-    font-size: 18px;
+    font-size: 26px;
     color: var(--ink-dim);
   }
   .sports-matchup {
     font-family: 'Kalam', cursive;
-    font-size: 24px;
+    font-size: 36px;
     text-align: center;
-    margin-top: 16px;
+    margin-top: 24px;
     line-height: 1.25;
   }
   .sports-datetime {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 20px;
+    font-size: 30px;
     font-weight: 700;
     text-align: center;
-    margin-top: 12px;
+    margin-top: 18px;
     color: var(--ink);
   }
   .sports-venue {
-    font-size: 14px;
+    font-size: 21px;
     color: var(--ink-dim);
     text-align: center;
-    margin-top: 10px;
+    margin-top: 15px;
   }
   .sports-lastresult {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1.5px dashed rgba(43,34,16,0.18);
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 15px;
+    font-size: 22px;
     font-weight: 600;
     text-align: center;
     color: var(--ink);
   }
   .tv-window {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 400px;
-    height: 225px;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+    inset: 0;
+    background: rgba(10,14,11,0.88);
     z-index: 40;
     display: none;
-    border: 4px solid var(--mustard);
+    align-items: center;
+    justify-content: center;
+  }
+  .tv-window.show { display: flex; }
+  .tv-frame {
+    width: min(86vw, 980px);
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+    border: 8px solid var(--mustard);
     background: #000;
   }
-  .tv-window.show { display: block; }
-  .tv-window iframe { width: 100%; height: 100%; border: 0; }
+  .tv-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
   .tv-close {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 34px;
-    height: 34px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.65);
+    background: var(--ink);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 26px;
     font-weight: 700;
     cursor: pointer;
-    z-index: 2;
+    z-index: 60;
   }
 </style>
 </head>
@@ -744,7 +796,9 @@
 
   <div class="tv-window" id="tvWindow">
     <div class="tv-close" id="tvClose">✕</div>
-    <iframe id="tvIframe" src="" title="TN en vivo" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div class="tv-frame">
+      <iframe id="tvIframe" src="" title="TN en vivo" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
   </div>
 
 </div>
@@ -1017,6 +1071,7 @@
         sportsItems.push(result.text);
       }
       renderSportsCards();
+      showNextTickerItem();
       scheduleNextCheckFor(teamId, teamLabel, emoji, result.kickoffMs); // programa el próximo partido
     }, delay);
   }
@@ -1033,6 +1088,7 @@
     sportsItems = results.map((r) => r.text).filter(Boolean);
     results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
     renderSportsCards();
+    showNextTickerItem();
   }
 
   // ---- arma los dos post-its del desplegable de fútbol ----
@@ -1073,16 +1129,14 @@
   function showNextTickerItem() {
     if (!sportsItems.length) return;
     const el = document.getElementById('newsText');
-    el.style.opacity = 0;
-    setTimeout(() => {
-      el.textContent = sportsItems[tickerIndex % sportsItems.length];
-      tickerIndex++;
-      el.style.opacity = 1;
-    }, 400);
+    // arma un solo texto largo con todos los partidos, separados,
+    // y lo deja fijo — el deslizamiento continuo lo hace el CSS (ledScroll)
+    el.textContent = sportsItems.join('     •     ') + '     •     ';
   }
 
   loadSports();
-  setInterval(showNextTickerItem, 1000 * 15); // rota cada 15 segundos
+  showNextTickerItem();
+  setInterval(showNextTickerItem, 1000 * 60 * 5); // refresca el texto cada 5 min por si cambió algo
   setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
 
   // ---- red de seguridad: si el timer puntual se perdió (por una recarga de
@@ -1108,6 +1162,7 @@
         sportsItems.push(result.text);
       }
       renderSportsCards();
+      showNextTickerItem();
       scheduleNextCheckFor(t.id, t.label, t.emoji, result.kickoffMs);
     }
   }
@@ -1394,6 +1449,9 @@
     if (tvOn) stopTV(); else playTV();
   });
   document.getElementById('tvClose').addEventListener('click', stopTV);
+  tvWindow.addEventListener('click', (e) => {
+    if (!e.target.closest('.tv-frame')) stopTV();
+  });
 </script>
 
 </body>
