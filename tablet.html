@@ -177,6 +177,7 @@
     width: 75%;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 18px;
     background: rgba(241,236,221,0.92);
     border-radius: 40px;
@@ -212,10 +213,11 @@
   }
 
   .weather-note {
-    background: #A6C1BE;
+    background: #17221D;
     width: 44%;
     padding: 22px 26px 18px;
     transform: rotate(-1.3deg);
+    color: var(--cream);
   }
 
   .weather-top {
@@ -223,66 +225,71 @@
     align-items: center;
     gap: 18px;
   }
-  .weather-icon-big { font-size: 50px; line-height: 1; }
+  .weather-icon-big { font-size: 54px; line-height: 1; }
   .weather-temp {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 50px;
+    font-size: 56px;
     line-height: 1;
+    color: #FFFFFF;
   }
   .weather-cond {
-    font-size: 18px;
-    color: var(--ink-dim);
+    font-size: 19px;
+    color: var(--cream-dim);
     margin-top: 4px;
+    font-weight: 600;
   }
   #rainTag {
-    color: #3D7EA6;
-    font-weight: 600;
+    color: #7EC8E3;
+    font-weight: 700;
   }
   .weather-feels {
     margin-left: auto;
     text-align: right;
-    font-size: 16px;
-    color: var(--ink-dim);
+    font-size: 17px;
+    color: var(--cream-dim);
     line-height: 1.3;
   }
-  .weather-feels b { color: var(--ink); font-size: 21px; }
+  .weather-feels b { color: #FFFFFF; font-size: 23px; }
 
   .clock-note {
-    background: #D9CBA3;
+    background: #17221D;
     width: 34%;
     padding: 18px 28px 20px;
     transform: rotate(1.4deg);
     text-align: center;
+    color: var(--cream);
   }
 
   .weekday {
     font-family: 'Kalam', cursive;
-    font-size: 26px;
-    color: #8a6a1f;
+    font-size: 27px;
+    color: var(--mustard);
   }
   .fulldate {
-    font-size: 15px;
+    font-size: 16px;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--ink-dim);
+    color: var(--cream-dim);
     margin-top: 2px;
+    font-weight: 600;
   }
   .clock {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 60px;
+    font-size: 64px;
     line-height: 1;
     margin-top: 5px;
     letter-spacing: -0.01em;
+    color: #FFFFFF;
   }
-  .clock span { color: #b8862b; }
+  .clock span { color: var(--mustard); }
 
   .phrase-line {
     margin-top: 9px;
     font-family: 'Kalam', cursive;
     font-size: 17px;
-    color: var(--ink-dim);
+    color: var(--cream-dim);
     line-height: 1.2;
   }
 
@@ -578,11 +585,11 @@
 
   .full-postit {
     width: 100%;
-    max-width: 900px;
+    max-width: 1100px;
     background: var(--cream);
-    border-radius: 20px;
-    padding: 60px 56px 64px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+    border-radius: 24px;
+    padding: 64px 64px 70px;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.5);
     position: relative;
     color: var(--ink);
   }
@@ -628,6 +635,48 @@
     white-space: pre-line;
   }
   .detail-desc > div { margin-bottom: 14px; }
+
+  .desc-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    background: rgba(43,34,16,0.05);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .desc-row-today {
+    background: rgba(194,105,75,0.12);
+    border: 2px solid rgba(194,105,75,0.35);
+  }
+  .desc-row-icon { font-size: 32px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .desc-row-text { flex: 1; }
+  .desc-row-title {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .desc-row-tag {
+    display: inline-block;
+    background: var(--brick);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 3px 10px;
+    border-radius: 14px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .desc-row-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+
   .detail-who {
     margin-top: 30px;
     font-size: 22px;
@@ -637,12 +686,12 @@
   .weather-minmax {
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 2px dashed rgba(43,34,16,0.18);
+    border-top: 2px dashed rgba(241,236,221,0.2);
     font-size: 18px;
-    color: var(--ink-dim);
+    color: var(--cream-dim);
     text-align: center;
   }
-  .weather-minmax b { color: var(--ink); font-weight: 700; }
+  .weather-minmax b { color: #FFFFFF; font-weight: 700; }
 
   .wf-header { display: flex; align-items: center; gap: 20px; }
   .wf-icon { font-size: 92px; line-height: 1; }
@@ -961,7 +1010,9 @@
   document.getElementById('notes').addEventListener('click', (e) => {
     const note = e.target.closest('.note');
     if(!note || note.id === 'radioNoteBtn') return;
-    document.getElementById('d-cat').textContent = note.dataset.cat;
+    const dCat = document.getElementById('d-cat');
+    dCat.textContent = note.dataset.cat;
+    dCat.style.background = typeStyle[note.dataset.type] ? typeStyle[note.dataset.type].bg : 'rgba(43,34,16,0.08)';
     document.getElementById('d-time').textContent = note.dataset.time;
     document.getElementById('d-title').textContent = note.dataset.title;
     document.getElementById('d-who').textContent = note.dataset.who;
@@ -972,11 +1023,16 @@
       const style = typeStyle[type];
       const today = todayDDMM();
       dDesc.innerHTML = entries.map((entry) => {
-        const line = `${style.icon} ${entry.title}${entry.who ? ' — ' + entry.who : ''}${entry.time ? ' (' + entry.time + ')' : ''}`;
         const esHoy = entry.time && entry.time.includes(today);
-        return esHoy
-          ? `<div class="today-highlight">🔴 HOY — ${line}</div>`
-          : `<div>${line}</div>`;
+        return `
+          <div class="desc-row ${esHoy ? 'desc-row-today' : ''}">
+            <span class="desc-row-icon">${style.icon}</span>
+            <div class="desc-row-text">
+              <div class="desc-row-title">${entry.title}${esHoy ? ' <span class=\"desc-row-tag\">HOY</span>' : ''}</div>
+              <div class="desc-row-sub">${entry.who ? entry.who + ' · ' : ''}${entry.time || ''}</div>
+            </div>
+          </div>
+        `;
       }).join('');
     } else {
       dDesc.textContent = note.dataset.desc;
@@ -1444,6 +1500,7 @@
     note.style.background = entry.done ? 'var(--sage)' : style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
     note.dataset.cat = style.cat;
+    note.dataset.type = type;
     note.dataset.time = entry.time;
     note.dataset.title = entry.title;
     note.dataset.desc = entry.desc || `${entry.title}${entry.who ? ' — ' + entry.who : ''}`;
@@ -1492,6 +1549,7 @@
       .join('\n');
 
     note.dataset.cat = style.cat;
+    note.dataset.type = type;
     note.dataset.time = style.cat;
     note.dataset.title = `${entries.length} ${style.cat.toLowerCase()}s`;
     note.dataset.desc = listText;
