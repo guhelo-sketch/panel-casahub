@@ -511,7 +511,7 @@
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   }
 
-  .group-item-postit {
+  .full-postit.group-item-postit {
     width: 340px;
     max-width: 340px;
     padding: 36px 32px 34px;
@@ -538,7 +538,7 @@
   }
 
   /* cuando hay 5-6 ítems, todo se achica un escalón para que entren sin scroll */
-  .group-item-postit.size-md {
+  .full-postit.group-item-postit.size-md {
     width: 250px;
     max-width: 250px;
     padding: 26px 22px 24px;
@@ -549,7 +549,7 @@
   .group-item-postit.size-md .detail-who { font-size: 14px; margin-top: 8px; }
 
   /* 7 o más, un escalón más chico todavía */
-  .group-item-postit.size-sm {
+  .full-postit.group-item-postit.size-sm {
     width: 180px;
     max-width: 180px;
     padding: 18px 16px 16px;
@@ -1637,11 +1637,8 @@
     note.dataset.title = `${entries.length} ${style.cat.toLowerCase()}s`;
     note.dataset.desc = listText;
     note.dataset.who = style.cat;
-    // para categorías anticipadas (salud/tareas), guardamos los datos crudos
-    // así al abrir el detalle podemos resaltar lo que es de hoy
-    if (type === 'schoolTask' || type === 'healthAppointment') {
-      note.dataset.entriesJson = JSON.stringify({ type, entries });
-    }
+    // todas las categorías agrupadas usan el modo de post-its individuales
+    note.dataset.entriesJson = JSON.stringify({ type, entries });
 
     const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
       entries.some((e) => e.time && e.time.includes(todayDDMM()));
