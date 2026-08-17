@@ -511,6 +511,32 @@
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   }
 
+  .group-item-postit {
+    width: 340px;
+    max-width: 340px;
+    padding: 36px 32px 34px;
+    text-align: center;
+  }
+  .group-item-postit .group-item-icon {
+    font-size: 46px;
+    line-height: 1;
+  }
+  .group-item-postit .detail-title {
+    font-size: 32px;
+    margin-top: 14px;
+    line-height: 1.2;
+  }
+  .group-item-postit .detail-time {
+    font-size: 22px;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .group-item-postit .detail-who {
+    font-size: 18px;
+    margin-top: 12px;
+    opacity: 0.7;
+  }
+
   .today-highlight {
     color: var(--brick);
     font-weight: 700;
@@ -937,13 +963,14 @@
 
   <div class="overlay-full" id="overlay">
     <div class="overlay-close" id="d-close">✕</div>
-    <div class="full-postit">
+    <div class="full-postit" id="singleDetailCard">
       <div class="detail-cat" id="d-cat">Colegio</div>
       <div class="detail-time" id="d-time">16:30</div>
       <div class="detail-title" id="d-title">Buscar a Lorenzo</div>
       <div class="detail-desc" id="d-desc">Descripción</div>
       <div class="detail-who" id="d-who">Asignado a</div>
     </div>
+    <div class="full-postit-row" id="groupDetailRow" style="display: none;"></div>
   </div>
 
   <div class="overlay-full" id="weatherOverlay">
@@ -1017,44 +1044,50 @@
   setInterval(updateDailyPhrase, 1000 * 60 * 60); // revisa cada hora, cambia al cruzar de día
 
   const overlay = document.getElementById('overlay');
+  const singleDetailCard = document.getElementById('singleDetailCard');
+  const groupDetailRow = document.getElementById('groupDetailRow');
+
   document.getElementById('notes').addEventListener('click', (e) => {
     const note = e.target.closest('.note');
     if(!note || note.id === 'radioNoteBtn') return;
-    const dCat = document.getElementById('d-cat');
-    dCat.textContent = note.dataset.cat;
-    dCat.style.background = typeStyle[note.dataset.type] ? typeStyle[note.dataset.type].bg : 'rgba(43,34,16,0.08)';
 
-    const dTime = document.getElementById('d-time');
     if (note.dataset.entriesJson) {
-      // en las agrupadas, el "time" es solo el nombre de la categoría repetido — lo ocultamos
-      dTime.classList.add('hidden');
-    } else {
-      dTime.classList.remove('hidden');
-      dTime.textContent = note.dataset.time;
-    }
-
-    document.getElementById('d-title').textContent = note.dataset.title;
-    document.getElementById('d-who').textContent = note.dataset.who;
-
-    const dDesc = document.getElementById('d-desc');
-    if (note.dataset.entriesJson) {
+      // ---- modo agrupado: un post-it chico por cada turno/tarea, centrados solos ----
       const { type, entries } = JSON.parse(note.dataset.entriesJson);
       const style = typeStyle[type];
       const today = todayDDMM();
-      dDesc.innerHTML = entries.map((entry) => {
+
+      groupDetailRow.innerHTML = '';
+      entries.forEach((entry, i) => {
         const esHoy = entry.time && entry.time.includes(today);
-        return `
-          <div class="desc-row ${esHoy ? 'desc-row-today' : ''}">
-            <span class="desc-row-icon">${style.icon}</span>
-            <div class="desc-row-text">
-              <div class="desc-row-title">${entry.title}${esHoy ? ' <span class=\"desc-row-tag\">HOY</span>' : ''}</div>
-              <div class="desc-row-sub">${entry.who ? entry.who + ' · ' : ''}${entry.time || ''}</div>
-            </div>
-          </div>
+        const card = document.createElement('div');
+        card.className = 'full-postit group-item-postit';
+        card.style.transform = `rotate(${rotations[i % rotations.length]})`;
+        card.innerHTML = `
+          ${esHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+          <div class="group-item-icon">${style.icon}</div>
+          <div class="detail-title">${entry.title}</div>
+          ${entry.time ? `<div class="detail-time">${entry.time}</div>` : ''}
+          ${entry.who ? `<div class="detail-who">${entry.who}</div>` : ''}
         `;
-      }).join('');
+        groupDetailRow.appendChild(card);
+      });
+
+      singleDetailCard.style.display = 'none';
+      groupDetailRow.style.display = 'flex';
     } else {
-      dDesc.textContent = note.dataset.desc;
+      // ---- modo tarjeta suelta: la de siempre ----
+      const dCat = document.getElementById('d-cat');
+      dCat.textContent = note.dataset.cat;
+      dCat.style.background = typeStyle[note.dataset.type] ? typeStyle[note.dataset.type].bg : 'rgba(43,34,16,0.08)';
+      document.getElementById('d-time').classList.remove('hidden');
+      document.getElementById('d-time').textContent = note.dataset.time;
+      document.getElementById('d-title').textContent = note.dataset.title;
+      document.getElementById('d-who').textContent = note.dataset.who;
+      document.getElementById('d-desc').textContent = note.dataset.desc;
+
+      groupDetailRow.style.display = 'none';
+      singleDetailCard.style.display = 'block';
     }
 
     overlay.classList.add('show');
@@ -1495,6 +1528,8 @@
     document.getElementById('d-title').textContent = '🚆 Línea Mitre';
     document.getElementById('d-desc').textContent = trainDetailText;
     document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
+    document.getElementById('groupDetailRow').style.display = 'none';
+    document.getElementById('singleDetailCard').style.display = 'block';
     overlay.classList.add('show');
   });
 
