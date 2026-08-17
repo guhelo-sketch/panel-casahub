@@ -111,9 +111,27 @@
 
   .mid-widgets {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 10px;
     flex-shrink: 0;
+    background: rgba(0,0,0,0.18);
+    border: 2px solid rgba(241,236,221,0.15);
+    border-radius: 20px;
+    padding: 14px 26px 18px;
+  }
+
+  .mid-widgets-label {
+    font-family: 'Kalam', cursive;
+    font-size: 14px;
+    color: var(--cream-dim);
+    letter-spacing: 0.03em;
+  }
+
+  .mid-widgets-btns {
+    display: flex;
+    align-items: center;
+    gap: 22px;
   }
 
   .mini-btn {
@@ -154,13 +172,44 @@
   .mini-btn.train-rojo { background: #E3A794; }
   .mini-btn.train-gris { background: #D8D3C4; }
 
-  .train-square-row { display: flex; justify-content: center; }
-  .train-square {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+  .train-bar-row { display: flex; justify-content: center; }
+  .train-bar {
+    width: 75%;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: rgba(241,236,221,0.92);
+    border-radius: 40px;
+    padding: 14px 32px;
+    cursor: pointer;
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease;
   }
-  .train-square .ic { font-size: 30px; }
+  .train-bar:active { transform: scale(0.98); }
+  .train-bar .ic { font-size: 34px; flex-shrink: 0; }
+  .train-bar-title {
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  .train-bar-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .train-bar-dot.train-verde { background: #4CAF50; }
+  .train-bar-dot.train-amarillo { background: #E8B54D; }
+  .train-bar-dot.train-rojo { background: #C2694B; }
+  .train-bar-dot.train-gris { background: #A8A296; }
+  .train-bar-status {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
 
   .weather-note {
     background: #A6C1BE;
@@ -244,13 +293,15 @@
     background:
       radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1.4px) 0 0/6px 6px,
       #0a0a0a;
-    border-radius: 6px;
-    padding: 14px 0;
+    padding: 16px 0;
     box-shadow: inset 0 0 24px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.4);
     overflow: hidden;
     white-space: nowrap;
     position: relative;
-    border: 3px solid #1a1a1a;
+    border-top: 3px solid #1a1a1a;
+    border-bottom: 3px solid #1a1a1a;
+    margin: 0 -38px; /* rompe el padding del panel para llegar de punta a punta */
+    width: calc(100% + 76px);
   }
   .news-tag {
     font-family: 'VT323', monospace;
@@ -270,12 +321,19 @@
     text-shadow: 0 0 6px rgba(255,179,0,0.6);
     white-space: nowrap;
     display: inline-block;
-    padding-left: 40px;
-    animation: ledScroll 22s linear infinite;
+    animation: ledScroll 48s linear infinite;
   }
   @keyframes ledScroll {
-    0% { transform: translateX(0); }
+    0% { transform: translateX(100vw); }
     100% { transform: translateX(-100%); }
+  }
+  .ticker-badge {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 10px;
+    filter: drop-shadow(0 0 3px rgba(255,179,0,0.4));
   }
 
   .radio-station-btn {
@@ -304,13 +362,22 @@
     cursor: pointer;
   }
 
+  .pending-label-row {
+    display: flex;
+    justify-content: center;
+  }
   .pending-label {
     display: inline-flex;
     align-items: center;
     gap: 10px;
     font-family: 'Kalam', cursive;
     font-size: 22px;
-    color: var(--cream);
+    color: var(--ink);
+    background: var(--mustard);
+    padding: 10px 30px;
+    border-radius: 30px;
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+    transform: rotate(-0.6deg);
   }
 
   .notes-row {
@@ -327,7 +394,7 @@
   .note {
     background: var(--mustard);
     flex: 1 1 340px;
-    max-width: 340px;
+    max-width: 460px;
     min-width: 230px;
     min-height: 250px;
     padding: 30px 30px 24px;
@@ -364,6 +431,20 @@
     margin-top: 16px;
   }
 
+  .discount-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 1;
+    margin-top: 14px;
+    color: #2E6B3E;
+  }
+  .discount-store {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    margin-top: 8px;
+  }
+
   .note.grouped {
     position: relative;
   }
@@ -396,6 +477,27 @@
     justify-content: center;
     z-index: 2;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .note-today-badge {
+    position: absolute;
+    top: -14px;
+    left: 16px;
+    background: var(--brick);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 14px;
+    border-radius: 20px;
+    z-index: 2;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .today-highlight {
+    color: var(--brick);
+    font-weight: 700;
   }
 
   .overlay-full {
@@ -525,6 +627,7 @@
     margin-top: 26px;
     white-space: pre-line;
   }
+  .detail-desc > div { margin-bottom: 14px; }
   .detail-who {
     margin-top: 30px;
     font-size: 22px;
@@ -726,14 +829,17 @@
     </div>
 
     <div class="mid-widgets">
-      <div class="mini-btn" id="radioNoteBtn">
-        <div class="ic" id="radioMiniIcon">📻</div>
-        <div class="lbl">MEGA</div>
-      </div>
+      <div class="mid-widgets-label">🏠 Centro de acceso</div>
+      <div class="mid-widgets-btns">
+        <div class="mini-btn" id="radioNoteBtn">
+          <div class="ic" id="radioMiniIcon">📻</div>
+          <div class="lbl">MEGA</div>
+        </div>
 
-      <div class="mini-btn" id="tvMini">
-        <div class="ic">📺</div>
-        <div class="lbl">TN</div>
+        <div class="mini-btn" id="tvMini">
+          <div class="ic">📺</div>
+          <div class="lbl">TN</div>
+        </div>
       </div>
     </div>
 
@@ -749,13 +855,18 @@
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
-  <div class="train-square-row">
-    <div class="mini-btn train-square train-gris" id="trainMini">
-      <div class="ic" id="trainMiniIcon">🚆</div>
+  <div class="train-bar-row">
+    <div class="train-bar" id="trainMini">
+      <div class="ic">🚆</div>
+      <div class="train-bar-title">MITRE</div>
+      <div class="train-bar-dot train-gris" id="trainDot"></div>
+      <div class="train-bar-status" id="trainMiniStatus">Consultando...</div>
     </div>
   </div>
 
-  <div class="pending-label" id="pendingLabel">📋 Pendientes de hoy</div>
+  <div class="pending-label-row">
+    <div class="pending-label" id="pendingLabel">🏠 CasaHub Loureiro-Sánchez</div>
+  </div>
 
   <div class="notes-row" id="notes">
     <div class="note" id="pendingLoading" style="background: var(--cream);">
@@ -853,8 +964,24 @@
     document.getElementById('d-cat').textContent = note.dataset.cat;
     document.getElementById('d-time').textContent = note.dataset.time;
     document.getElementById('d-title').textContent = note.dataset.title;
-    document.getElementById('d-desc').textContent = note.dataset.desc;
     document.getElementById('d-who').textContent = note.dataset.who;
+
+    const dDesc = document.getElementById('d-desc');
+    if (note.dataset.entriesJson) {
+      const { type, entries } = JSON.parse(note.dataset.entriesJson);
+      const style = typeStyle[type];
+      const today = todayDDMM();
+      dDesc.innerHTML = entries.map((entry) => {
+        const line = `${style.icon} ${entry.title}${entry.who ? ' — ' + entry.who : ''}${entry.time ? ' (' + entry.time + ')' : ''}`;
+        const esHoy = entry.time && entry.time.includes(today);
+        return esHoy
+          ? `<div class="today-highlight">🔴 HOY — ${line}</div>`
+          : `<div>${line}</div>`;
+      }).join('');
+    } else {
+      dDesc.textContent = note.dataset.desc;
+    }
+
     overlay.classList.add('show');
   });
 
@@ -879,6 +1006,17 @@
   }
   updateAutoNightMode();
   setInterval(updateAutoNightMode, 1000 * 60); // revisa cada minuto
+
+  // ---- recargo automático diario a las 4am, colchón extra para el 24/7 ----
+  // limpia cualquier acumulación de memoria/estado de días corridos sin reiniciar
+  function scheduleDailyReload() {
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(4, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    setTimeout(() => location.reload(), target - now);
+  }
+  scheduleDailyReload();
 
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(() => {});
@@ -1135,17 +1273,34 @@
   }
 
   function showNextTickerItem() {
-    if (!sportsItems.length) return;
     const el = document.getElementById('newsText');
-    // arma un solo texto largo con todos los partidos, separados,
-    // y lo deja fijo — el deslizamiento continuo lo hace el CSS (ledScroll)
-    el.textContent = sportsItems.join('     •     ') + '     •     ';
+    const teamIds = ['135173', '133738'];
+    const parts = [];
+
+    teamIds.forEach((id) => {
+      const info = matchInfo[id];
+      if (!info) return;
+      let html = '';
+      if (info.teamBadge) html += `<img class="ticker-badge" src="${info.teamBadge}" onerror="this.style.display='none'">`;
+      html += `${info.vsText} — ${info.dateTimeText}`;
+      if (info.rivalBadge) html += `<img class="ticker-badge" src="${info.rivalBadge}" onerror="this.style.display='none'">`;
+      parts.push(html);
+    });
+
+    if (!parts.length && sportsItems.length) {
+      // respaldo si todavía no cargó matchInfo pero sí el texto simple
+      el.textContent = sportsItems.join('     •     ') + '     •     ';
+      return;
+    }
+    if (!parts.length) return;
+
+    el.innerHTML = parts.join('     •     ') + '     •     ';
   }
 
   loadSports();
   showNextTickerItem();
   setInterval(showNextTickerItem, 1000 * 60 * 5); // refresca el texto cada 5 min por si cambió algo
-  setInterval(loadSports, 1000 * 60 * 60 * 6); // rutina liviana cada 6 hs, por si hay reprogramaciones
+  setInterval(loadSports, 1000 * 60 * 60 * 2); // rutina de respaldo cada 2 hs, no depende del timer puntual
 
   // ---- red de seguridad: si el timer puntual se perdió (por una recarga de
   // página, por ejemplo), esto se da cuenta solo y refresca igual ----
@@ -1216,13 +1371,17 @@
         const html = await tryFetchTrain(proxyUrl);
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const bodyText = doc.body.textContent.replace(/\s+/g, ' ');
-        const idx = bodyText.toLowerCase().indexOf('mitre');
+        const bodyLower = bodyText.toLowerCase();
+        // buscamos "línea mitre" (con o sin tilde) en vez de "mitre" suelto —
+        // "mitre" solo choca con nombres de calles/plazas en cualquier barrio
+        let idx = bodyLower.indexOf('línea mitre');
+        if (idx === -1) idx = bodyLower.indexOf('linea mitre');
 
         let status = 'verde';
         let detail = 'No aparece ninguna novedad activa para la línea Mitre: circularía con normalidad.';
 
         if (idx !== -1) {
-          const context = bodyText.substring(Math.max(0, idx - 200), idx + 300);
+          const context = bodyText.substring(Math.max(0, idx - 50), idx + 350);
           const contextLower = context.toLowerCase();
           if (contextLower.includes('interrump') || contextLower.includes('suspend')) {
             status = 'rojo';
@@ -1244,9 +1403,10 @@
 
   function applyTrainStatus(status, detail) {
     const labels = { verde: 'Circula con normalidad', amarillo: 'Con demoras/obras', rojo: 'Interrumpido', gris: 'Sin datos ahora' };
-    const trainMini = document.getElementById('trainMini');
-    trainMini.classList.remove('train-verde', 'train-amarillo', 'train-rojo', 'train-gris');
-    trainMini.classList.add('train-' + status);
+    const dot = document.getElementById('trainDot');
+    dot.classList.remove('train-verde', 'train-amarillo', 'train-rojo', 'train-gris');
+    dot.classList.add('train-' + status);
+    document.getElementById('trainMiniStatus').textContent = labels[status];
     trainDetailText = detail;
     trainStatusLabel = labels[status];
   }
@@ -1288,12 +1448,36 @@
     note.dataset.title = entry.title;
     note.dataset.desc = entry.desc || `${entry.title}${entry.who ? ' — ' + entry.who : ''}`;
     note.dataset.who = entry.who ? `${style.cat}: ${entry.who}` : style.cat;
+
+    const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entry.time && entry.time.includes(todayDDMM());
+
+    if (type === 'discount') {
+      // separa "20% en Chango Más" en el número gigante + el comercio
+      const match = entry.title.match(/^(\d+%)\s+en\s+(.+)$/i);
+      if (match) {
+        note.innerHTML = `
+          <div class="note-time">${entry.time}</div>
+          <div class="discount-pct">${match[1]}</div>
+          <div class="discount-store">${match[2]}</div>
+          <div class="note-who">${entry.who || style.cat}</div>
+        `;
+        return note;
+      }
+    }
+
     note.innerHTML = `
+      ${esHoy ? '<div class="note-today-badge">HOY</div>' : ''}
       <div class="note-time">${entry.time}</div>
       <div class="note-title">${entry.title}</div>
       <div class="note-who">${entry.who || style.cat}</div>
     `;
     return note;
+  }
+
+  function todayDDMM() {
+    const now = new Date();
+    return String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0');
   }
 
   function buildGroupedNote(type, entries, index) {
@@ -1312,12 +1496,41 @@
     note.dataset.title = `${entries.length} ${style.cat.toLowerCase()}s`;
     note.dataset.desc = listText;
     note.dataset.who = style.cat;
+    // para categorías anticipadas (salud/tareas), guardamos los datos crudos
+    // así al abrir el detalle podemos resaltar lo que es de hoy
+    if (type === 'schoolTask' || type === 'healthAppointment') {
+      note.dataset.entriesJson = JSON.stringify({ type, entries });
+    }
+
+    const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entries.some((e) => e.time && e.time.includes(todayDDMM()));
 
     note.innerHTML = `
       <div class="note-count-badge">${entries.length}</div>
+      ${hayHoy ? '<div class="note-today-badge">HOY</div>' : ''}
       <div class="note-time">${style.icon} ${style.cat}</div>
       <div class="note-title">Ver ${entries.length} ${entries.length > 1 ? 'ítems' : 'ítem'}</div>
       <div class="note-who">Tocá para ver la lista</div>
+    `;
+    return note;
+  }
+
+  const emptyMessages = {
+    discount: { icon: '🛒', text: 'SIN DESCUENTOS HOY' },
+    schoolTask: { icon: '🎒', text: 'TODO LISTO' },
+    healthAppointment: { icon: '❤️', text: 'SIN TURNOS PENDIENTES' }
+  };
+
+  function buildEmptyNote(type, index) {
+    const style = typeStyle[type];
+    const msg = emptyMessages[type];
+    const note = document.createElement('div');
+    note.className = 'note dynamic-pending';
+    note.style.background = style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+    note.innerHTML = `
+      <div class="note-time">${style.icon} ${style.cat}</div>
+      <div class="note-title">✓ ${msg.text}</div>
     `;
     return note;
   }
@@ -1327,7 +1540,14 @@
     let index = 0;
     categoryOrder.forEach((type) => {
       const entries = categories[type] || [];
-      if (!entries.length) return;
+      if (!entries.length) {
+        // solo mostramos tarjeta de "vacío" para las categorías que definimos con mensaje propio
+        if (emptyMessages[type]) {
+          notes.push(buildEmptyNote(type, index));
+          index++;
+        }
+        return;
+      }
       if (entries.length === 1) {
         notes.push(buildSingleNote(type, entries[0], index));
       } else {
@@ -1345,14 +1565,6 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const categories = data.categories || {};
-
-      // Actualiza el título de la sección según el modo hoy/mañana
-      const label = document.getElementById('pendingLabel');
-      if (data.mode === 'tomorrow') {
-        label.textContent = `📋 Para mañana, ${data.dayLabel}`;
-      } else {
-        label.textContent = '📋 Pendientes de hoy';
-      }
 
       if (loadingNote) loadingNote.remove();
 
