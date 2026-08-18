@@ -55,7 +55,37 @@
     transition: filter 0.6s ease;
   }
 
-  .device.night { filter: brightness(0.22) saturate(0.55) contrast(1.05); }
+  .device.night-hidden { display: none; }
+
+  .night-clock {
+    position: fixed;
+    inset: 0;
+    background: #05070a;
+    display: none;
+    z-index: 100;
+  }
+  .night-clock.show { display: block; }
+  .night-clock-content {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    transition: top 4s ease-in-out, left 4s ease-in-out;
+  }
+  .night-clock-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 160px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .night-clock-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.3);
+    margin-top: 14px;
+  }
 
   .status {
     position: absolute;
@@ -912,6 +942,13 @@
 </head>
 <body>
 
+<div class="night-clock" id="nightClock">
+  <div class="night-clock-content" id="nightClockContent">
+    <div class="night-clock-time" id="nightClockTime">--:--</div>
+    <div class="night-clock-temp" id="nightClockTemp">--°</div>
+  </div>
+</div>
+
 <div class="device" id="device">
 
   <div class="status"><div class="dot-live"></div>Wi-Fi conectado</div>
@@ -1040,6 +1077,7 @@
     document.getElementById('weekday').textContent = weekdays[now.getDay()];
     document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
     document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
+    document.getElementById('nightClockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
   }
   tick();
   setInterval(tick, 1000 * 10);
@@ -1130,16 +1168,61 @@
   });
 
   // ---- modo noche automático, sin tocar nada ----
-  const NIGHT_START_HOUR = 23; // se atenúa a partir de esta hora
-  const NIGHT_END_HOUR = 7;    // vuelve a brillo normal a partir de esta hora
+  // ---- MODO NOCHE PROFUNDO: 23:00 → 05:20 ----
+  // Reemplaza el dashboard completo por solo hora + temperatura, bien grande,
+  // rotando de posición despacio. Pausa las llamadas que no hacen falta de noche.
+  let nightModeActive = null; // null = todavía no determinado (evita disparar el "refresco de salida" en la primera carga)
+  let currentTempDisplay = '--°';
 
-  function updateAutoNightMode() {
-    const hour = new Date().getHours();
-    const isNight = hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
-    document.getElementById('device').classList.toggle('night', isNight);
+  function isDeepNight() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    return h >= 23 || h < 5 || (h === 5 && m < 20);
   }
-  updateAutoNightMode();
-  setInterval(updateAutoNightMode, 1000 * 60); // revisa cada minuto
+
+  const nightPositions = [
+    { top: '48%', left: '50%' },
+    { top: '40%', left: '38%' },
+    { top: '55%', left: '62%' },
+    { top: '45%', left: '58%' },
+    { top: '52%', left: '42%' }
+  ];
+  let nightPosIndex = 0;
+
+  function cycleNightPosition() {
+    nightPosIndex = (nightPosIndex + 1) % nightPositions.length;
+    const pos = nightPositions[nightPosIndex];
+    const el = document.getElementById('nightClockContent');
+    if (el) { el.style.top = pos.top; el.style.left = pos.left; }
+  }
+  setInterval(cycleNightPosition, 1000 * 60 * 5); // cada 5 min, se mueve un toque
+
+  function checkNightTransition() {
+    const nowNight = isDeepNight();
+    if (nowNight === nightModeActive) return; // sin cambios, no hace nada
+    const wasNight = nightModeActive;
+    nightModeActive = nowNight;
+
+    const nightClock = document.getElementById('nightClock');
+    const dashboard = document.getElementById('device');
+
+    if (nightModeActive) {
+      nightClock.classList.add('show');
+      dashboard.classList.add('night-hidden');
+    } else {
+      nightClock.classList.remove('show');
+      dashboard.classList.remove('night-hidden');
+      if (wasNight !== null) {
+        // recién salimos de la noche: pedimos todo fresco de una, no lo que quedó viejo
+        loadWeather();
+        loadPendingToday();
+        loadTrainStatus();
+      }
+    }
+  }
+  checkNightTransition();
+  setInterval(checkNightTransition, 1000 * 60); // revisa cada minuto
 
   // ---- recargo automático diario a las 4am, colchón extra para el 24/7 ----
   // limpia cualquier acumulación de memoria/estado de días corridos sin reiniciar
@@ -1183,6 +1266,8 @@
       const nowInfo = weatherInfo(data.current.weather_code, isDayNow);
       document.getElementById('w-icon-now').textContent = nowInfo.ic;
       document.getElementById('w-temp-now').textContent = Math.round(data.current.temperature_2m) + '°';
+      currentTempDisplay = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('nightClockTemp').textContent = currentTempDisplay;
       document.getElementById('w-cond-now').textContent = nowInfo.txt;
       document.getElementById('w-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
 
@@ -1229,7 +1314,8 @@
   }
 
   loadWeather();
-  setInterval(loadWeather, 1000 * 60 * 30);
+  setInterval(() => { if (!nightModeActive) loadWeather(); }, 1000 * 60 * 30); // de día, cada 30 min
+  setInterval(() => { if (nightModeActive) loadWeather(); }, 1000 * 60 * 90); // de noche, cada 90 min (para que la temp no quede vieja)
 
   const weatherOverlay = document.getElementById('weatherOverlay');
   document.getElementById('weatherNoteBtn').addEventListener('click', () => {
@@ -1560,7 +1646,7 @@
   });
 
   loadTrainStatus();
-  setInterval(loadTrainStatus, 1000 * 60 * 15); // revisa cada 15 min
+  setInterval(() => { if (!nightModeActive) loadTrainStatus(); }, 1000 * 60 * 15); // revisa cada 15 min, pausado de noche
 
   // ---- pendientes de hoy/mañana: datos reales de CasaHub vía Cloud Function ----
   const CASAHUB_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getTodayItems';
@@ -1732,7 +1818,7 @@
   }
 
   loadPendingToday(); // carga al abrir el panel
-  setInterval(loadPendingToday, 1000 * 60 * 30); // y refresca cada 30 min
+  setInterval(() => { if (!nightModeActive) loadPendingToday(); }, 1000 * 60 * 30); // y refresca cada 30 min, pausado de noche
 
   // además, un pedido puntual justo a las 21:00 en punto (hora del celu),
   // para que el switch hoy/mañana no dependa de en qué momento del
