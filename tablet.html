@@ -242,6 +242,22 @@
     letter-spacing: 0.02em;
   }
 
+  .moon-bar {
+    transition: opacity 0.5s ease;
+    justify-content: center;
+  }
+  .moon-bar-face {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .moon-bar-phrase {
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    color: var(--ink);
+    text-align: center;
+  }
+
   .weather-note {
     background: #17221D;
     width: 44%;
@@ -999,12 +1015,22 @@
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
-  <div class="train-bar-row">
+  <div class="train-bar-row" id="trainBarRow">
     <div class="train-bar" id="trainMini">
       <div class="ic">🚆</div>
-      <div class="train-bar-title">MITRE</div>
+      <div class="train-bar-title">BELGRANO NORTE</div>
       <div class="train-bar-dot train-gris" id="trainDot"></div>
       <div class="train-bar-status" id="trainMiniStatus">Consultando...</div>
+    </div>
+  </div>
+
+  <div class="train-bar-row" id="moonBarRow" style="display: none;">
+    <div class="train-bar moon-bar" id="moonBar">
+      <div class="moon-bar-face" id="moonBarFace">
+        <span class="ic" id="moonIcon">🌕</span>
+        <span class="train-bar-title" id="moonPhaseName">Luna Llena</span>
+      </div>
+      <div class="moon-bar-phrase" id="moonBarPhrase" style="display: none;"></div>
     </div>
   </div>
 
@@ -1217,7 +1243,7 @@
         // recién salimos de la noche: pedimos todo fresco de una, no lo que quedó viejo
         loadWeather();
         loadPendingToday();
-        loadTrainStatus();
+        if (isTuesday()) loadTrainStatus();
       }
     }
   }
@@ -1563,6 +1589,143 @@
   });
 
   // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
+  // ---- luna + eclipses: se muestra los días que NO es martes, en vez del tren ----
+  // 100% calculado localmente, sin ninguna API — no se puede romper nunca
+  function getMoonPhaseInfo(date) {
+    const synodicMonth = 29.53058867;
+    const knownNewMoonMs = Date.UTC(2000, 0, 6, 18, 14);
+    const daysSince = (date.getTime() - knownNewMoonMs) / 86400000;
+    let phase = (daysSince % synodicMonth) / synodicMonth;
+    if (phase < 0) phase += 1;
+
+    const phases = [
+      { name: 'Luna Nueva', ic: '🌑' },
+      { name: 'Luna Creciente', ic: '🌒' },
+      { name: 'Cuarto Creciente', ic: '🌓' },
+      { name: 'Gibosa Creciente', ic: '🌔' },
+      { name: 'Luna Llena', ic: '🌕' },
+      { name: 'Gibosa Menguante', ic: '🌖' },
+      { name: 'Cuarto Menguante', ic: '🌗' },
+      { name: 'Luna Menguante', ic: '🌘' }
+    ];
+    const index = Math.floor(phase * 8 + 0.5) % 8;
+    return phases[index];
+  }
+
+  const moonPhrases = {
+    'Luna Nueva': [
+      '"Cada final es también un comienzo silencioso."',
+      '"Lo que no se ve todavía, ya está creciendo por dentro."',
+      '"Sembrá hoy lo que querés cosechar mañana."',
+      '"La oscuridad también es un buen lugar para empezar."'
+    ],
+    'Luna Creciente': [
+      '"De a poco también se llega — no hay que apurar la luz."',
+      '"Cada día un poquito más, eso ya es avanzar."',
+      '"Lo que crece despacio, crece firme."'
+    ],
+    'Cuarto Creciente': [
+      '"A mitad de camino, ya se ve bastante más lejos."',
+      '"Los desafíos de hoy son el impulso de mañana."',
+      '"Seguí, que ya falta menos que lo que ya recorriste."'
+    ],
+    'Gibosa Creciente': [
+      '"Falta poco para el brillo completo — no aflojes ahora."',
+      '"La paciencia también es una forma de fuerza."',
+      '"Ya casi. Sostené un poco más."'
+    ],
+    'Luna Llena': [
+      '"Hoy el cielo está completo — buen día para celebrar lo hecho."',
+      '"Lo que sembraste hace tiempo, hoy se ve entero."',
+      '"Un buen momento para agradecer lo que ya tenés."',
+      '"Todo lo que creciste, hoy se nota."'
+    ],
+    'Gibosa Menguante': [
+      '"Después de la plenitud, viene el ordenar lo vivido."',
+      '"No todo tiene que seguir creciendo — a veces toca guardar."',
+      '"Un buen momento para hacer balance."'
+    ],
+    'Cuarto Menguante': [
+      '"Soltar también es avanzar, aunque no lo parezca."',
+      '"Lo que ya no suma, se puede dejar ir tranquilo."',
+      '"A mitad de camino de vuelta a empezar."'
+    ],
+    'Luna Menguante': [
+      '"Antes de lo nuevo, viene el descanso."',
+      '"Cerrar bien un ciclo es preparar el que sigue."',
+      '"Lo que se va, deja lugar para lo que viene."'
+    ]
+  };
+
+  // fechas de eclipses 2026-2027, dato astronómico fijo — no depende de ninguna API
+  const eclipses = [
+    { date: '2026-02-17', type: 'solar', label: 'Eclipse solar anular', ic: '☀️', phrase: '"Hoy el cielo se detiene un instante — buen día para pausar vos también."' },
+    { date: '2026-03-02', type: 'lunar', label: 'Eclipse lunar total', ic: '🌕', phrase: '"La Luna se tiñe de sombra hoy — dejá ir lo que ya cumplió su ciclo."' },
+    { date: '2026-03-03', type: 'lunar', label: 'Eclipse lunar total', ic: '🌕', phrase: '"La Luna se tiñe de sombra hoy — dejá ir lo que ya cumplió su ciclo."' },
+    { date: '2026-08-27', type: 'lunar', label: 'Eclipse lunar parcial', ic: '🌗', phrase: '"Un eclipse profundo hoy — buen momento para mirar hacia adentro."' },
+    { date: '2026-08-28', type: 'lunar', label: 'Eclipse lunar parcial', ic: '🌗', phrase: '"Un eclipse profundo hoy — buen momento para mirar hacia adentro."' },
+    { date: '2027-02-06', type: 'solar', label: 'Eclipse solar anular', ic: '☀️', phrase: '"Hoy el cielo se detiene un instante — buen día para pausar vos también."' },
+    { date: '2027-02-20', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-02-21', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-07-18', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-08-02', type: 'solar', label: 'Eclipse solar total', ic: '☀️', phrase: '"Hoy el día se apaga un rato en pleno mediodía."' },
+    { date: '2027-08-16', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-08-17', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' }
+  ];
+
+  function todayISO() {
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  }
+
+  let moonShowingPhrase = false;
+
+  function renderMoonWidget() {
+    const info = getMoonPhaseInfo(new Date());
+    const eclipseToday = eclipses.find((e) => e.date === todayISO());
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+
+    if (eclipseToday) {
+      document.getElementById('moonIcon').textContent = eclipseToday.ic;
+      document.getElementById('moonPhaseName').textContent = eclipseToday.label;
+      document.getElementById('moonBarPhrase').textContent = eclipseToday.phrase;
+    } else {
+      document.getElementById('moonIcon').textContent = info.ic;
+      document.getElementById('moonPhaseName').textContent = info.name;
+      const pool = moonPhrases[info.name] || ['"El cielo tiene su propio ritmo, y hoy te acompaña."'];
+      document.getElementById('moonBarPhrase').textContent = pool[dayOfYear % pool.length];
+    }
+  }
+
+  function toggleMoonDisplay() {
+    const bar = document.getElementById('moonBar');
+    bar.style.opacity = 0;
+    setTimeout(() => {
+      moonShowingPhrase = !moonShowingPhrase;
+      document.getElementById('moonBarFace').style.display = moonShowingPhrase ? 'none' : 'flex';
+      document.getElementById('moonBarPhrase').style.display = moonShowingPhrase ? 'block' : 'none';
+      bar.style.opacity = 1;
+    }, 500);
+  }
+  setInterval(toggleMoonDisplay, 1000 * 6); // alterna cada 6 segundos
+
+  function isTuesday() {
+    return new Date().getDay() === 2; // 0=domingo ... 2=martes
+  }
+
+  function updateSecondaryBar() {
+    if (isTuesday()) {
+      document.getElementById('trainBarRow').style.display = 'flex';
+      document.getElementById('moonBarRow').style.display = 'none';
+    } else {
+      document.getElementById('trainBarRow').style.display = 'none';
+      document.getElementById('moonBarRow').style.display = 'flex';
+      renderMoonWidget();
+    }
+  }
+  updateSecondaryBar();
+  setInterval(updateSecondaryBar, 1000 * 60 * 60); // revisa cada hora (no llama a nada externo, no cuesta nada)
+
   let trainDetailText = 'Sin datos por ahora.';
   let trainStatusLabel = 'Consultando...';
 
@@ -1592,13 +1755,14 @@
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const bodyText = doc.body.textContent.replace(/\s+/g, ' ');
         const bodyLower = bodyText.toLowerCase();
-        // buscamos "línea mitre" (con o sin tilde) en vez de "mitre" suelto —
-        // "mitre" solo choca con nombres de calles/plazas en cualquier barrio
-        let idx = bodyLower.indexOf('línea mitre');
-        if (idx === -1) idx = bodyLower.indexOf('linea mitre');
+        // buscamos "línea belgrano norte" (con o sin tilde) —
+        // el nombre suelto choca con calles/plazas en cualquier barrio
+        let idx = bodyLower.indexOf('línea belgrano norte');
+        if (idx === -1) idx = bodyLower.indexOf('linea belgrano norte');
+        if (idx === -1) idx = bodyLower.indexOf('belgrano norte'); // respaldo, un poco menos preciso
 
         let status = 'verde';
-        let detail = 'No aparece ninguna novedad activa para la línea Mitre: circularía con normalidad.';
+        let detail = 'No aparece ninguna novedad activa para la línea Belgrano Norte: circularía con normalidad.';
 
         if (idx !== -1) {
           const context = bodyText.substring(Math.max(0, idx - 50), idx + 350);
@@ -1632,12 +1796,12 @@
   }
 
   document.getElementById('trainMini').addEventListener('click', () => {
-    document.getElementById('d-cat').textContent = 'Tren Mitre';
+    document.getElementById('d-cat').textContent = 'Tren Belgrano Norte';
     document.getElementById('d-cat').style.background = 'rgba(43,34,16,0.08)';
     const dTime = document.getElementById('d-time');
     dTime.classList.remove('hidden');
     dTime.textContent = trainStatusLabel;
-    document.getElementById('d-title').textContent = '🚆 Línea Mitre';
+    document.getElementById('d-title').textContent = '🚆 Línea Belgrano Norte';
     document.getElementById('d-desc').textContent = trainDetailText;
     document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
     document.getElementById('groupDetailRow').style.display = 'none';
@@ -1645,8 +1809,8 @@
     overlay.classList.add('show');
   });
 
-  loadTrainStatus();
-  setInterval(() => { if (!nightModeActive) loadTrainStatus(); }, 1000 * 60 * 15); // revisa cada 15 min, pausado de noche
+  if (isTuesday()) loadTrainStatus();
+  setInterval(() => { if (!nightModeActive && isTuesday()) loadTrainStatus(); }, 1000 * 60 * 15); // solo martes, pausado de noche
 
   // ---- pendientes de hoy/mañana: datos reales de CasaHub vía Cloud Function ----
   const CASAHUB_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getTodayItems';
