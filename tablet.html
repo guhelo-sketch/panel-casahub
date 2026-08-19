@@ -71,11 +71,18 @@
     text-align: center;
     transition: top 4s ease-in-out, left 4s ease-in-out;
   }
+  .night-clock-date {
+    font-family: 'Kalam', cursive;
+    font-size: 42px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 10px;
+    text-transform: capitalize;
+  }
   .night-clock-time {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: 160px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.42);
     line-height: 1;
     letter-spacing: -0.02em;
   }
@@ -83,7 +90,7 @@
     font-family: 'Space Grotesk', sans-serif;
     font-size: 48px;
     font-weight: 600;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.24);
     margin-top: 14px;
   }
 
@@ -242,16 +249,11 @@
     letter-spacing: 0.02em;
   }
 
-  .moon-bar {
+  #secondaryBar {
     transition: opacity 0.5s ease;
     justify-content: center;
   }
-  .moon-bar-face {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .moon-bar-phrase {
+  #secondaryBar .secondary-text {
     font-family: 'Kalam', cursive;
     font-size: 22px;
     color: var(--ink);
@@ -848,19 +850,32 @@
 
   .full-postit-row {
     width: 100%;
-    max-width: 1300px;
+    max-width: 1700px;
     display: flex;
     flex-wrap: wrap;
-    gap: 44px;
+    gap: 40px;
     justify-content: center;
   }
   .sports-postit {
     flex: 1;
-    min-width: 420px;
-    max-width: 600px;
+    min-width: 380px;
+    max-width: 540px;
   }
   .sports-postit:nth-child(1) { transform: rotate(-1.4deg); }
   .sports-postit:nth-child(2) { transform: rotate(1.2deg); }
+  .sports-postit:nth-child(3) { transform: rotate(-0.8deg); }
+
+  /* cuando hay 3 (fútbol x2 + F1), se achican un escalón para entrar en una sola fila */
+  .full-postit-row.count-3 .sports-postit {
+    min-width: 320px;
+    max-width: 420px;
+    padding: 44px 40px 46px;
+  }
+  .full-postit-row.count-3 .sports-league { font-size: 16px; }
+  .full-postit-row.count-3 .sports-matchup { font-size: 28px; margin-top: 18px; }
+  .full-postit-row.count-3 .sports-badge { width: 78px; height: 78px; }
+  .full-postit-row.count-3 .sports-datetime { font-size: 24px; }
+  .full-postit-row.count-3 .f1-session-row { font-size: 16px; padding: 9px 14px; }
 
   .sports-league {
     font-size: 19px;
@@ -917,6 +932,25 @@
     text-align: center;
     color: var(--ink);
   }
+
+  .f1-sessions {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .f1-session-row {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(43,34,16,0.05);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
   .tv-window {
     position: fixed;
     inset: 0;
@@ -960,6 +994,7 @@
 
 <div class="night-clock" id="nightClock">
   <div class="night-clock-content" id="nightClockContent">
+    <div class="night-clock-date" id="nightClockDate">-- de --</div>
     <div class="night-clock-time" id="nightClockTime">--:--</div>
     <div class="night-clock-temp" id="nightClockTemp">--°</div>
   </div>
@@ -1015,23 +1050,8 @@
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
-  <div class="train-bar-row" id="trainBarRow">
-    <div class="train-bar" id="trainMini">
-      <div class="ic">🚆</div>
-      <div class="train-bar-title">BELGRANO NORTE</div>
-      <div class="train-bar-dot train-gris" id="trainDot"></div>
-      <div class="train-bar-status" id="trainMiniStatus">Consultando...</div>
-    </div>
-  </div>
-
-  <div class="train-bar-row" id="moonBarRow" style="display: none;">
-    <div class="train-bar moon-bar" id="moonBar">
-      <div class="moon-bar-face" id="moonBarFace">
-        <span class="ic" id="moonIcon">🌕</span>
-        <span class="train-bar-title" id="moonPhaseName">Luna Llena</span>
-      </div>
-      <div class="moon-bar-phrase" id="moonBarPhrase" style="display: none;"></div>
-    </div>
+  <div class="train-bar-row">
+    <div class="train-bar" id="secondaryBar"></div>
   </div>
 
   <div class="pending-label-row">
@@ -1104,6 +1124,7 @@
     document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
     document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
     document.getElementById('nightClockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('nightClockDate').textContent = weekdays[now.getDay()] + ', ' + now.getDate() + ' de ' + months[now.getMonth()];
   }
   tick();
   setInterval(tick, 1000 * 10);
@@ -1244,6 +1265,11 @@
         loadWeather();
         loadPendingToday();
         if (isTuesday()) loadTrainStatus();
+        if (typeof buildSecondaryItems === 'function') {
+          buildSecondaryItems();
+          secondaryIndex = 0;
+          if (secondaryItems.length) renderSecondaryItem(secondaryItems[0]);
+        }
       }
     }
   }
@@ -1284,8 +1310,9 @@
 
   async function loadWeather() {
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,wind_speed_10m_max,precipitation_sum&timezone=auto&forecast_days=5`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
       const isDayNow = data.current.is_day === 1;
@@ -1298,6 +1325,8 @@
       document.getElementById('w-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
 
       const days = data.daily.time;
+      lastWeatherDaily = data.daily;
+      if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
       const codes = data.daily.weather_code;
       const maxs = data.daily.temperature_2m_max;
       const mins = data.daily.temperature_2m_min;
@@ -1468,6 +1497,62 @@
     }, delay);
   }
 
+  // ---- fórmula 1: Jolpica API (sucesora gratuita de Ergast), sin key ----
+  let f1Info = null;
+
+  async function fetchF1Info() {
+    try {
+      const res = await fetch('https://api.jolpi.ca/ergast/f1/current/next.json');
+      const data = await res.json();
+      const race = data.MRData.RaceTable.Races[0];
+      if (!race) throw new Error('Sin próxima carrera');
+
+      const sessions = [];
+      const add = (label, obj) => {
+        if (obj && obj.date && obj.time) sessions.push({ label, utcMs: new Date(obj.date + 'T' + obj.time).getTime() });
+      };
+      add('Práctica 1', race.FirstPractice);
+      add('Práctica 2', race.SecondPractice);
+      add('Práctica 3', race.ThirdPractice);
+      add('Clasificación', race.Qualifying);
+      add('Sprint', race.Sprint);
+      add('Carrera', { date: race.date, time: race.time });
+      sessions.sort((a, b) => a.utcMs - b.utcMs);
+
+      f1Info = {
+        raceName: race.raceName,
+        circuit: race.Circuit ? race.Circuit.circuitName : '',
+        locality: race.Circuit && race.Circuit.Location ? race.Circuit.Location.locality + ', ' + race.Circuit.Location.country : '',
+        sessions
+      };
+      localStorage.setItem('f1Info', JSON.stringify(f1Info));
+    } catch (err) {
+      console.warn('F1 sin conexión, uso guardado:', err.message);
+      const cached = localStorage.getItem('f1Info');
+      if (cached) f1Info = JSON.parse(cached);
+    }
+  }
+
+  function isF1WeekendActive() {
+    if (!f1Info || !f1Info.sessions.length) return false;
+    const nowMs = Date.now();
+    const first = f1Info.sessions[0];
+    const last = f1Info.sessions[f1Info.sessions.length - 1];
+    const daysUntilFirst = (first.utcMs - nowMs) / (1000 * 60 * 60 * 24);
+    if (daysUntilFirst > 3) return false; // todavía falta mucho
+    if (nowMs > last.utcMs + 1000 * 60 * 60 * 3) return false; // ya terminó (carrera + margen)
+    return true;
+  }
+
+  function formatSessionTime(utcMs) {
+    const utcDate = new Date(utcMs);
+    const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    const dayName = weekShortEs2[argDate.getDay()];
+    const hh = String(argDate.getHours()).padStart(2, '0');
+    const mm = String(argDate.getMinutes()).padStart(2, '0');
+    return `${dayName} ${hh}:${mm}hs`;
+  }
+
   async function loadSports() {
     const teams = [
       { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
@@ -1477,13 +1562,14 @@
       teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
     );
     await Promise.all(teams.map((t) => fetchLastResult(t.id, t.label)));
+    await fetchF1Info();
     sportsItems = results.map((r) => r.text).filter(Boolean);
     results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
     renderSportsCards();
     showNextTickerItem();
   }
 
-  // ---- arma los dos post-its del desplegable de fútbol ----
+  // ---- arma los post-its del desplegable de fútbol (+ F1 si corresponde) ----
   function renderSportsCards() {
     const row = document.getElementById('sportsRow');
     if (!row) return;
@@ -1516,6 +1602,23 @@
       `;
       row.appendChild(card);
     });
+
+    if (isF1WeekendActive()) {
+      const card = document.createElement('div');
+      card.className = 'full-postit sports-postit';
+      const sessionsHtml = f1Info.sessions
+        .map((s) => `<div class="f1-session-row"><span>${s.label}</span><span>${formatSessionTime(s.utcMs)}</span></div>`)
+        .join('');
+      card.innerHTML = `
+        <div class="sports-league">Fórmula 1</div>
+        <div class="sports-matchup" style="margin-top:16px;">🏎️ ${f1Info.raceName}</div>
+        <div class="f1-sessions">${sessionsHtml}</div>
+        <div class="sports-venue">${f1Info.circuit ? '🏁 ' + f1Info.circuit : ''}${f1Info.locality ? ' — ' + f1Info.locality : ''}</div>
+      `;
+      row.appendChild(card);
+    }
+
+    row.classList.toggle('count-3', row.children.length >= 3);
   }
 
   function showNextTickerItem() {
@@ -1532,6 +1635,12 @@
       if (info.rivalBadge) html += `<img class="ticker-badge" src="${info.rivalBadge}" onerror="this.style.display='none'">`;
       parts.push(html);
     });
+
+    if (isF1WeekendActive()) {
+      const nowMs = Date.now();
+      const next = f1Info.sessions.find((s) => s.utcMs > nowMs) || f1Info.sessions[f1Info.sessions.length - 1];
+      parts.push(`🏎️ F1 — ${f1Info.raceName}: ${next.label} ${formatSessionTime(next.utcMs)}`);
+    }
 
     if (!parts.length && sportsItems.length) {
       // respaldo si todavía no cargó matchInfo pero sí el texto simple
@@ -1678,56 +1787,122 @@
     return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   }
 
-  let moonShowingPhrase = false;
-
-  function renderMoonWidget() {
-    const info = getMoonPhaseInfo(new Date());
-    const eclipseToday = eclipses.find((e) => e.date === todayISO());
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-
-    if (eclipseToday) {
-      document.getElementById('moonIcon').textContent = eclipseToday.ic;
-      document.getElementById('moonPhaseName').textContent = eclipseToday.label;
-      document.getElementById('moonBarPhrase').textContent = eclipseToday.phrase;
-    } else {
-      document.getElementById('moonIcon').textContent = info.ic;
-      document.getElementById('moonPhaseName').textContent = info.name;
-      const pool = moonPhrases[info.name] || ['"El cielo tiene su propio ritmo, y hoy te acompaña."'];
-      document.getElementById('moonBarPhrase').textContent = pool[dayOfYear % pool.length];
-    }
-  }
-
-  function toggleMoonDisplay() {
-    const bar = document.getElementById('moonBar');
-    bar.style.opacity = 0;
-    setTimeout(() => {
-      moonShowingPhrase = !moonShowingPhrase;
-      document.getElementById('moonBarFace').style.display = moonShowingPhrase ? 'none' : 'flex';
-      document.getElementById('moonBarPhrase').style.display = moonShowingPhrase ? 'block' : 'none';
-      bar.style.opacity = 1;
-    }, 500);
-  }
-  setInterval(toggleMoonDisplay, 1000 * 6); // alterna cada 6 segundos
-
   function isTuesday() {
     return new Date().getDay() === 2; // 0=domingo ... 2=martes
   }
 
-  function updateSecondaryBar() {
-    if (isTuesday()) {
-      document.getElementById('trainBarRow').style.display = 'flex';
-      document.getElementById('moonBarRow').style.display = 'none';
+  // ---- guarda el último dato diario del clima, para sol/aviso sin pedir de nuevo ----
+  let lastWeatherDaily = null;
+
+  function getSunriseSunsetText(daily) {
+    if (!daily.sunrise || !daily.sunset) return null;
+    const sr = new Date(daily.sunrise[0]);
+    const ss = new Date(daily.sunset[0]);
+    const fmt = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return `🌅 Amanece ${fmt(sr)}hs · 🌇 Anochece ${fmt(ss)}hs`;
+  }
+
+  function getWeatherAdvisory(daily) {
+    const windMax = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[0] : null;
+    const rainSum = daily.precipitation_sum ? daily.precipitation_sum[0] : null;
+    if (windMax && windMax >= 50) return `💨 Vientos fuertes hoy — ráfagas de hasta ${Math.round(windMax)} km/h`;
+    if (rainSum && rainSum >= 10) return `⛈️ Se esperan ${Math.round(rainSum)}mm de lluvia hoy`;
+    return null;
+  }
+
+  // ---- arma la lista de todo lo que corresponde mostrar hoy ----
+  let secondaryItems = [];
+  let secondaryIndex = 0;
+
+  function isTuesdayMorningWindow() {
+    if (!isTuesday()) return false;
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const afterFiveTwenty = h > 5 || (h === 5 && m >= 20);
+    const beforeEight = h < 8;
+    return afterFiveTwenty && beforeEight;
+  }
+
+  function buildSecondaryItems() {
+    // martes de 5:20 a 8:00, Perla necesita ver el tren de un vistazo — no rota, queda fijo
+    if (isTuesdayMorningWindow()) {
+      secondaryItems = [{ type: 'train' }];
+      return;
+    }
+
+    const items = [];
+
+    if (isTuesday()) items.push({ type: 'train' });
+
+    const moonInfo = getMoonPhaseInfo(new Date());
+    const eclipseToday = eclipses.find((e) => e.date === todayISO());
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+
+    if (eclipseToday) {
+      items.push({ type: 'moon', ic: eclipseToday.ic, name: eclipseToday.label });
+      items.push({ type: 'text', text: eclipseToday.phrase });
     } else {
-      document.getElementById('trainBarRow').style.display = 'none';
-      document.getElementById('moonBarRow').style.display = 'flex';
-      renderMoonWidget();
+      items.push({ type: 'moon', ic: moonInfo.ic, name: moonInfo.name });
+      const pool = moonPhrases[moonInfo.name] || ['"El cielo tiene su propio ritmo, y hoy te acompaña."'];
+      items.push({ type: 'text', text: pool[dayOfYear % pool.length] });
+    }
+
+    if (lastWeatherDaily) {
+      const sunText = getSunriseSunsetText(lastWeatherDaily);
+      if (sunText) {
+        items.push({ type: 'text', text: '🌅 Amanecer y atardecer de hoy' });
+        items.push({ type: 'text', text: sunText });
+      }
+      const advisory = getWeatherAdvisory(lastWeatherDaily);
+      if (advisory) {
+        items.push({ type: 'text', text: '⚠️ Aviso del día' });
+        items.push({ type: 'text', text: advisory });
+      }
+    }
+
+    secondaryItems = items;
+  }
+
+  function renderSecondaryItem(item) {
+    const bar = document.getElementById('secondaryBar');
+    bar.dataset.currentType = item.type;
+
+    if (item.type === 'train') {
+      bar.innerHTML = `
+        <div class="ic">🚆</div>
+        <div class="train-bar-title">BELGRANO NORTE</div>
+        <div class="train-bar-dot train-${trainCurrentStatus}"></div>
+        <div class="train-bar-status">${trainStatusLabel}</div>
+      `;
+    } else if (item.type === 'moon') {
+      bar.innerHTML = `<span class="ic">${item.ic}</span><span class="train-bar-title">${item.name}</span>`;
+    } else {
+      bar.innerHTML = `<span class="secondary-text">${item.text}</span>`;
     }
   }
-  updateSecondaryBar();
-  setInterval(updateSecondaryBar, 1000 * 60 * 60); // revisa cada hora (no llama a nada externo, no cuesta nada)
 
-  let trainDetailText = 'Sin datos por ahora.';
+  function rotateSecondary() {
+    if (!secondaryItems.length) return;
+    const bar = document.getElementById('secondaryBar');
+    bar.style.opacity = 0;
+    setTimeout(() => {
+      secondaryIndex = (secondaryIndex + 1) % secondaryItems.length;
+      renderSecondaryItem(secondaryItems[secondaryIndex]);
+      bar.style.opacity = 1;
+    }, 500);
+  }
+
+  buildSecondaryItems();
+  if (secondaryItems.length) renderSecondaryItem(secondaryItems[0]);
+  setInterval(rotateSecondary, 1000 * 15); // 15 seg por ítem
+  setInterval(buildSecondaryItems, 1000 * 60 * 60); // rearma la lista cada hora
+
+
+
   let trainStatusLabel = 'Consultando...';
+  let trainDetailText = 'Sin datos por ahora.';
+  let trainCurrentStatus = 'gris';
 
   async function tryFetchTrain(url) {
     const controller = new AbortController();
@@ -1787,15 +1962,17 @@
 
   function applyTrainStatus(status, detail) {
     const labels = { verde: 'Circula con normalidad', amarillo: 'Con demoras/obras', rojo: 'Interrumpido', gris: 'Sin datos ahora' };
-    const dot = document.getElementById('trainDot');
-    dot.classList.remove('train-verde', 'train-amarillo', 'train-rojo', 'train-gris');
-    dot.classList.add('train-' + status);
-    document.getElementById('trainMiniStatus').textContent = labels[status];
-    trainDetailText = detail;
+    trainCurrentStatus = status;
     trainStatusLabel = labels[status];
+    trainDetailText = detail;
+    // si el tren se está mostrando ahora mismo en la barra, lo actualiza al toque
+    if (document.getElementById('secondaryBar').dataset.currentType === 'train') {
+      renderSecondaryItem({ type: 'train' });
+    }
   }
 
-  document.getElementById('trainMini').addEventListener('click', () => {
+  document.getElementById('secondaryBar').addEventListener('click', () => {
+    if (document.getElementById('secondaryBar').dataset.currentType !== 'train') return;
     document.getElementById('d-cat').textContent = 'Tren Belgrano Norte';
     document.getElementById('d-cat').style.background = 'rgba(43,34,16,0.08)';
     const dTime = document.getElementById('d-time');
