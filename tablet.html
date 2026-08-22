@@ -688,6 +688,27 @@
   }
   .overlay-close:active { transform: scale(0.92); }
 
+  .sports-refresh {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 60;
+    transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  }
+  .sports-refresh:active { transform: scale(0.9); background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); }
+  .sports-refresh.spinning { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
   .full-postit {
     width: 100%;
     max-width: 1100px;
@@ -1099,6 +1120,7 @@
 
   <div class="overlay-full" id="sportsOverlay">
     <div class="overlay-close" id="sportsClose">✕</div>
+    <div class="sports-refresh" id="sportsRefresh" title="Volver a intentar traer los datos">🔄</div>
     <div class="full-postit-row" id="sportsRow"></div>
   </div>
 
@@ -1398,6 +1420,7 @@
     const cacheDataKey = 'nextMatchData_' + teamId;
     try {
       const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const ev = data.events && data.events[0];
       if (!ev) throw new Error('Sin evento');
@@ -1440,10 +1463,11 @@
   }
 
   // ---- último resultado jugado, mismo patrón que fetchNextMatch ----
-  async function fetchLastResult(teamId, teamLabel) {
+  async function fetchLastResult(teamId, teamLabel, attempt = 1) {
     const cacheKey = 'lastResult_' + teamId;
     try {
       const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${teamId}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const ev = data.results && data.results[0];
       if (!ev || ev.intHomeScore === null || ev.intHomeScore === undefined) throw new Error('Sin resultado');
@@ -1462,7 +1486,12 @@
       lastResultInfo[teamId] = text;
       return text;
     } catch (err) {
-      console.warn('Último resultado sin conexión, uso guardado:', teamLabel, err.message);
+      console.warn(`Último resultado falló (intento ${attempt}):`, teamLabel, err.message);
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // espera 3 seg y reintenta
+        return fetchLastResult(teamId, teamLabel, attempt + 1);
+      }
+      // ya reintentamos 3 veces, recién ahí usamos el respaldo guardado
       const cached = localStorage.getItem(cacheKey);
       lastResultInfo[teamId] = cached || null;
       return cached || null;
@@ -1694,6 +1723,18 @@
   sportsOverlay.addEventListener('click', (e) => {
     if (!e.target.closest('.full-postit')) {
       sportsOverlay.classList.remove('show');
+    }
+  });
+
+  document.getElementById('sportsRefresh').addEventListener('click', async (e) => {
+    e.stopPropagation(); // que no dispare el cierre del overlay
+    const btn = e.currentTarget;
+    if (btn.classList.contains('spinning')) return; // ya está recargando, no duplicar
+    btn.classList.add('spinning');
+    try {
+      await loadSports();
+    } finally {
+      btn.classList.remove('spinning');
     }
   });
 
