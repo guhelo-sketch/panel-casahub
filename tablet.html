@@ -1503,10 +1503,17 @@
           try {
             const season = seasonString(comp.seasonType);
             const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=${comp.idLeague}&s=${season}`);
-            if (!res.ok) return [];
+            if (!res.ok) {
+              console.warn(`[${teamLabel}] liga ${comp.idLeague} temp ${season}: HTTP ${res.status}`);
+              return [];
+            }
             const data = await res.json();
-            return data.events || [];
+            const events = data.events || [];
+            const delEquipo = events.filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel);
+            console.log(`[${teamLabel}] liga ${comp.idLeague} temp ${season}: ${events.length} eventos totales, ${delEquipo.length} del equipo`);
+            return events;
           } catch (e) {
+            console.warn(`[${teamLabel}] liga ${comp.idLeague} falló:`, e.message);
             return []; // esta competencia puntual falló, seguimos con las demás
           }
         })
@@ -1519,6 +1526,9 @@
         .map((e) => ({ ...e, _ts: e.strTimestamp ? new Date(e.strTimestamp + 'Z').getTime() : NaN }))
         .filter((e) => !isNaN(e._ts) && e._ts <= nowMs) // descarta fechas rotas o mal cargadas antes de ordenar
         .sort((a, b) => b._ts - a._ts);
+
+      console.log(`[${teamLabel}] candidatos jugados encontrados (los 5 más recientes):`,
+        jugados.slice(0, 5).map((e) => `${e.dateEvent} — ${e.strEvent} (${e.strLeague}) ${e.intHomeScore}-${e.intAwayScore}`));
 
       const ev = jugados[0];
       if (!ev) throw new Error('Sin partido jugado en ninguna competencia');
