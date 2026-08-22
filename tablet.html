@@ -1516,8 +1516,9 @@
         .flat()
         .filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel)
         .filter((e) => e.intHomeScore !== null && e.intHomeScore !== undefined && e.intAwayScore !== null && e.intAwayScore !== undefined)
-        .filter((e) => e.strTimestamp && new Date(e.strTimestamp + 'Z').getTime() <= nowMs)
-        .sort((a, b) => new Date(b.strTimestamp + 'Z') - new Date(a.strTimestamp + 'Z'));
+        .map((e) => ({ ...e, _ts: e.strTimestamp ? new Date(e.strTimestamp + 'Z').getTime() : NaN }))
+        .filter((e) => !isNaN(e._ts) && e._ts <= nowMs) // descarta fechas rotas o mal cargadas antes de ordenar
+        .sort((a, b) => b._ts - a._ts);
 
       const ev = jugados[0];
       if (!ev) throw new Error('Sin partido jugado en ninguna competencia');
