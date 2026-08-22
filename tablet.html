@@ -1441,6 +1441,8 @@
       const info = {
         vsText,
         league: ev.strLeague || '',
+        idLeague: ev.idLeague || '',
+        season: ev.strSeason || '',
         venue: ev.strVenue || '',
         dateTimeText: `${dayName} ${dd} · ${hh}:${mm}hs`,
         teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
@@ -1462,15 +1464,63 @@
     }
   }
 
-  // ---- último resultado jugado, mismo patrón que fetchNextMatch ----
+  // ---- todas las competencias donde cada equipo puede jugar, para buscar el
+  // último resultado sin importar si fue liga, copa o amistoso ----
+  const teamCompetitions = {
+    '135173': [ // San Lorenzo
+      { idLeague: '4406', seasonType: 'single' }, // Primera División
+      { idLeague: '4500', seasonType: 'single' }, // Copa Argentina
+      { idLeague: '4501', seasonType: 'single' }, // Copa Libertadores
+      { idLeague: '4724', seasonType: 'single' }, // Copa Sudamericana
+      { idLeague: '4569', seasonType: 'single' }  // Amistosos
+    ],
+    '133738': [ // Real Madrid
+      { idLeague: '4335', seasonType: 'european' }, // La Liga
+      { idLeague: '4480', seasonType: 'european' }, // Champions League
+      { idLeague: '4483', seasonType: 'european' }, // Copa del Rey
+      { idLeague: '4503', seasonType: 'single' },   // Mundial de Clubes
+      { idLeague: '4569', seasonType: 'single' }    // Amistosos
+    ]
+  };
+
+  function seasonString(type) {
+    const now = new Date();
+    const y = now.getFullYear();
+    if (type === 'single') return String(y);
+    const m = now.getMonth() + 1;
+    return m >= 7 ? `${y}-${y + 1}` : `${y - 1}-${y}`; // temporada europea arranca ~julio/agosto
+  }
+
+  // ---- último resultado jugado, buscando en TODAS las competencias del equipo ----
   async function fetchLastResult(teamId, teamLabel, attempt = 1) {
     const cacheKey = 'lastResult_' + teamId;
     try {
-      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${teamId}`);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      const ev = data.results && data.results[0];
-      if (!ev || ev.intHomeScore === null || ev.intHomeScore === undefined) throw new Error('Sin resultado');
+      const competitions = teamCompetitions[teamId] || [];
+      const nowMs = Date.now();
+
+      const allMatchesArrays = await Promise.all(
+        competitions.map(async (comp) => {
+          try {
+            const season = seasonString(comp.seasonType);
+            const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=${comp.idLeague}&s=${season}`);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data.events || [];
+          } catch (e) {
+            return []; // esta competencia puntual falló, seguimos con las demás
+          }
+        })
+      );
+
+      const jugados = allMatchesArrays
+        .flat()
+        .filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel)
+        .filter((e) => e.intHomeScore !== null && e.intHomeScore !== undefined && e.intAwayScore !== null && e.intAwayScore !== undefined)
+        .filter((e) => e.strTimestamp && new Date(e.strTimestamp + 'Z').getTime() <= nowMs)
+        .sort((a, b) => new Date(b.strTimestamp + 'Z') - new Date(a.strTimestamp + 'Z'));
+
+      const ev = jugados[0];
+      if (!ev) throw new Error('Sin partido jugado en ninguna competencia');
 
       const isHome = ev.strHomeTeam === teamLabel;
       const teamScore = isHome ? ev.intHomeScore : ev.intAwayScore;
