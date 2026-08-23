@@ -111,17 +111,6 @@
     box-shadow: 0 0 0 2px rgba(143,191,138,0.18);
   }
 
-  .night-toggle {
-    position: absolute;
-    top: 12px;
-    left: 26px;
-    font-size: 9px;
-    color: var(--cream-dim);
-    opacity: 0.5;
-    z-index: 30;
-    cursor: pointer;
-  }
-
   .postit {
     position: relative;
     border-radius: 4px;
@@ -142,9 +131,11 @@
   .top-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: stretch;
+    gap: 18px;
     padding-top: 2px;
   }
+  .top-row > * { display: flex; flex-direction: column; justify-content: center; }
 
   .mid-widgets {
     display: flex;
@@ -211,7 +202,9 @@
 
   .train-bar-row { display: flex; justify-content: center; }
   .train-bar {
-    width: 75%;
+    width: auto;
+    min-width: 40%;
+    max-width: 75%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -420,6 +413,7 @@
   .pending-label-row {
     display: flex;
     justify-content: center;
+    margin: 14px 0 20px;
   }
   .pending-label {
     display: inline-flex;
@@ -1024,7 +1018,6 @@
 <div class="device" id="device">
 
   <div class="status"><div class="dot-live"></div>Wi-Fi conectado</div>
-  <div class="night-toggle" id="nightToggle">noche (demo)</div>
 
   <div class="top-row">
     <div class="weather-note postit" id="weatherNoteBtn" style="cursor: pointer;">
@@ -1232,11 +1225,6 @@
     }
   });
 
-  document.getElementById('nightToggle').addEventListener('click', () => {
-    document.getElementById('device').classList.toggle('night');
-  });
-
-  // ---- modo noche automático, sin tocar nada ----
   // ---- MODO NOCHE PROFUNDO: 23:00 → 05:20 ----
   // Reemplaza el dashboard completo por solo hora + temperatura, bien grande,
   // rotando de posición despacio. Pausa las llamadas que no hacen falta de noche.
@@ -1466,6 +1454,25 @@
 
   // ---- todas las competencias donde cada equipo puede jugar, para buscar el
   // último resultado sin importar si fue liga, copa o amistoso ----
+  // ---- nombres de liga en español (la API los devuelve en inglés) ----
+  const leagueNamesEs = {
+    'Argentinian Primera Division': 'Liga Profesional',
+    'Argentinian Primera División': 'Liga Profesional',
+    'Spanish La Liga': 'LaLiga',
+    'UEFA Champions League': 'Champions League',
+    'Spanish Copa del Rey': 'Copa del Rey',
+    'Copa Libertadores': 'Copa Libertadores',
+    'Copa Sudamericana': 'Copa Sudamericana',
+    'Argentinian Copa Argentina': 'Copa Argentina',
+    'FIFA Club World Cup': 'Mundial de Clubes',
+    'Club Friendlies': 'Amistoso',
+    'Soccer Club Friendlies': 'Amistoso'
+  };
+
+  function ligaEnEspanol(nombre) {
+    return leagueNamesEs[nombre] || nombre;
+  }
+
   const teamCompetitions = {
     '135173': [ // San Lorenzo
       { idLeague: '4406' }, // Primera División
@@ -1679,7 +1686,7 @@
       }
 
       card.innerHTML = `
-        <div class="sports-league">${info.league}</div>
+        <div class="sports-league">${ligaEnEspanol(info.league)}</div>
         <div class="sports-teams">
           <img class="sports-badge" src="${info.teamBadge || ''}" onerror="this.style.display='none'">
           <div class="sports-vs">vs</div>
