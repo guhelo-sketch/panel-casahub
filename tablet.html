@@ -427,6 +427,8 @@
   .pending-label-row {
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 16px;
     margin: 14px 0 20px;
   }
   .pending-label {
@@ -1045,6 +1047,16 @@
     font-weight: 700;
   }
 
+  .sports-countdown.is-imminent {
+    background: var(--brick);
+    color: #fff;
+    border-radius: 20px;
+    padding: 8px 18px;
+    display: inline-block;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
   .sports-scoreline {
     margin-top: 22px;
     padding-top: 18px;
@@ -1153,6 +1165,86 @@
   }
   .dates-row.is-featured .dates-row-text { font-weight: 700; }
 
+  /* tren con problemas: la barra avisa sin necesidad de leer */
+  #secondaryBar.is-alert {
+    background: #E8C4B8;
+    border: 3px solid var(--brick);
+    box-shadow: 3px 6px 20px rgba(194,105,75,0.4);
+  }
+  #secondaryBar.is-warning {
+    background: #F2E0B5;
+    border: 3px solid #C9A227;
+  }
+
+  .week-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.22);
+    border: 2px solid rgba(232,181,77,0.4);
+    font-size: 26px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .week-btn:active { transform: scale(0.92); background: rgba(232,181,77,0.25); }
+
+  #weekCard { max-width: 1600px; }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    margin-top: 26px;
+  }
+  .week-day {
+    background: rgba(43,34,16,0.05);
+    border-radius: 14px;
+    padding: 14px 10px;
+    min-height: 190px;
+  }
+  .week-day.is-today {
+    background: rgba(194,105,75,0.14);
+    border: 2px solid var(--brick);
+  }
+  .week-day-head {
+    text-align: center;
+    border-bottom: 2px dashed rgba(43,34,16,0.15);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .week-day-name {
+    display: block;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .week-day-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .week-item {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.35;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+  .week-item.is-featured { font-weight: 700; color: #8a6a1f; }
+  .week-empty {
+    text-align: center;
+    color: var(--ink-dim);
+    opacity: 0.5;
+    font-size: 18px;
+  }
+
   .tv-window {
     position: fixed;
     inset: 0;
@@ -1257,6 +1349,12 @@
 
   <div class="pending-label-row">
     <div class="pending-label" id="pendingLabel">🏠 CasaHub Loureiro-Sánchez</div>
+    <div class="week-btn" id="weekBtn" title="Ver la semana">🗓️</div>
+  </div>
+
+  <div class="overlay-full" id="weekOverlay">
+    <div class="overlay-close" id="weekClose">✕</div>
+    <div class="full-postit" id="weekCard"></div>
   </div>
 
   <div class="notes-row" id="notes">
@@ -1619,6 +1717,80 @@
   });
 
   // ---- calendario de fechas especiales del mes ----
+  // ---- vista semanal: lunes a domingo con todo lo de la semana ----
+  let ultimasCategorias = {};
+  const weekOverlay = document.getElementById('weekOverlay');
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  function renderWeekCard() {
+    const hoy = new Date();
+    // arrancamos siempre en lunes
+    const lunes = new Date(hoy);
+    const offset = (hoy.getDay() + 6) % 7; // 0=lunes ... 6=domingo
+    lunes.setDate(hoy.getDate() - offset);
+    lunes.setHours(0, 0, 0, 0);
+
+    const moviles = fechasMoviles(hoy.getFullYear());
+    const todasEspeciales = [
+      ...fechasGrupo1.map((f) => ({ ...f, destacada: true })),
+      ...fechasGrupo2.map((f) => ({ ...f, destacada: false })),
+      ...moviles.map((f) => ({ ...f, destacada: f.grupo === 1 })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto, destacada: false };
+      })
+    ];
+
+    let html = `<div class="detail-cat" style="background: var(--mustard);">🗓️ Esta semana</div><div class="week-grid">`;
+
+    for (let i = 0; i < 7; i++) {
+      const dia = new Date(lunes);
+      dia.setDate(lunes.getDate() + i);
+      const diaDDMM = ddmm(dia);
+      const esHoy = ddmm(hoy) === diaDDMM;
+      const items = [];
+
+      // turnos médicos y tareas de ese día
+      (ultimasCategorias.healthAppointment || []).forEach((e) => {
+        if (e.time && e.time.includes(diaDDMM)) items.push({ ic: '🏥', txt: e.title });
+      });
+      (ultimasCategorias.schoolTask || []).forEach((e) => {
+        if (e.time && e.time.includes(diaDDMM)) items.push({ ic: '🎒', txt: e.title });
+      });
+      // fechas especiales de ese día
+      todasEspeciales.filter((f) => f.fecha === diaDDMM).forEach((f) => {
+        items.push({ ic: '⭐', txt: f.texto, destacada: f.destacada });
+      });
+
+      html += `
+        <div class="week-day ${esHoy ? 'is-today' : ''}">
+          <div class="week-day-head">
+            <span class="week-day-name">${diasSemana[i]}</span>
+            <span class="week-day-num">${dia.getDate()}</span>
+          </div>
+          <div class="week-day-items">
+            ${items.length
+              ? items.map((it) => `<div class="week-item ${it.destacada ? 'is-featured' : ''}"><span>${it.ic}</span> ${it.txt}</div>`).join('')
+              : '<div class="week-empty">—</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    html += '</div>';
+    document.getElementById('weekCard').innerHTML = html;
+  }
+
+  document.getElementById('weekBtn').addEventListener('click', () => {
+    renderWeekCard();
+    weekOverlay.classList.add('show');
+  });
+  weekOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      weekOverlay.classList.remove('show');
+    }
+  });
+
   const datesOverlay = document.getElementById('datesOverlay');
   const mesesLargos = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
@@ -2066,7 +2238,7 @@
         </div>
         <div class="sports-matchup">${info.vsText}</div>
         <div class="sports-datetime">${info.dateTimeText}</div>
-        ${info.kickoffMs ? `<div class="sports-countdown">${cuentaRegresiva(info.kickoffMs)}</div>` : ''}
+        ${info.kickoffMs ? `<div class="sports-countdown${(info.kickoffMs - Date.now()) < 1000*60*60*3 ? ' is-imminent' : ''}">${cuentaRegresiva(info.kickoffMs)}</div>` : ''}
         <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
         ${marcadorHtml}
       `;
@@ -2514,6 +2686,9 @@
     const bar = document.getElementById('secondaryBar');
     bar.dataset.currentType = item.type;
     bar.classList.toggle('is-greeting', item.type === 'greeting');
+    // si el tren está interrumpido o con demoras, la barra se destaca sola
+    bar.classList.toggle('is-alert', item.type === 'train' && trainCurrentStatus === 'rojo');
+    bar.classList.toggle('is-warning', item.type === 'train' && trainCurrentStatus === 'amarillo');
 
     if (item.type === 'train') {
       bar.innerHTML = `
@@ -2802,6 +2977,7 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const categories = data.categories || {};
+      ultimasCategorias = categories; // guardamos para la vista semanal
 
       if (loadingNote) loadingNote.remove();
 
