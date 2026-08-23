@@ -1467,25 +1467,21 @@
   // ---- todas las competencias donde cada equipo puede jugar, para buscar el
   // último resultado sin importar si fue liga, copa o amistoso ----
   const teamCompetitions = {
-    '135173': [ // San Lorenzo — solo Primera División por ahora, único torneo que juega esta temporada
-      { idLeague: '4406', seasonType: 'single' } // Primera División
+    '135173': [ // San Lorenzo
+      { idLeague: '4406' }, // Primera División
+      { idLeague: '4500' }, // Copa Argentina
+      { idLeague: '4501' }, // Copa Libertadores
+      { idLeague: '4724' }, // Copa Sudamericana
+      { idLeague: '4569' }  // Amistosos de clubes
     ],
     '133738': [ // Real Madrid
-      { idLeague: '4335', seasonType: 'european' }, // La Liga
-      { idLeague: '4480', seasonType: 'european' }, // Champions League
-      { idLeague: '4483', seasonType: 'european' }, // Copa del Rey
-      { idLeague: '4503', seasonType: 'single' },   // Mundial de Clubes
-      { idLeague: '4569', seasonType: 'single' }    // Amistosos
+      { idLeague: '4335' }, // La Liga
+      { idLeague: '4480' }, // Champions League
+      { idLeague: '4483' }, // Copa del Rey
+      { idLeague: '4503' }, // Mundial de Clubes
+      { idLeague: '4569' }  // Amistosos de clubes
     ]
   };
-
-  function seasonString(type) {
-    const now = new Date();
-    const y = now.getFullYear();
-    if (type === 'single') return String(y);
-    const m = now.getMonth() + 1;
-    return m >= 7 ? `${y}-${y + 1}` : `${y - 1}-${y}`; // temporada europea arranca ~julio/agosto
-  }
 
   // ---- último resultado jugado, buscando en TODAS las competencias del equipo ----
   async function fetchLastResult(teamId, teamLabel, attempt = 1) {
@@ -1494,40 +1490,48 @@
       const competitions = teamCompetitions[teamId] || [];
       const nowMs = Date.now();
 
-      const allMatchesArrays = await Promise.all(
-        competitions.map(async (comp) => {
-          try {
-            const season = seasonString(comp.seasonType);
-            const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=${comp.idLeague}&s=${season}`);
-            if (!res.ok) {
-              console.warn(`[${teamLabel}] liga ${comp.idLeague} temp ${season}: HTTP ${res.status}`);
+      // Buscamos día por día hacia atrás desde hoy. La consulta de temporada completa
+      // ("eventsseason.php") viene recortada en la clave gratuita y por eso devolvía
+      // partidos viejos del arranque del torneo; pidiendo por día, cada respuesta es
+      // chica y no la corta nadie.
+      const MAX_DIAS_ATRAS = 21;
+      let encontrado = null;
+
+      for (let d = 0; d <= MAX_DIAS_ATRAS && !encontrado; d++) {
+        const fecha = new Date(nowMs - d * 86400000);
+        const fechaStr = fecha.getFullYear() + '-' +
+          String(fecha.getMonth() + 1).padStart(2, '0') + '-' +
+          String(fecha.getDate()).padStart(2, '0');
+
+        const resultadosDelDia = await Promise.all(
+          competitions.map(async (comp) => {
+            try {
+              const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d=${fechaStr}&l=${comp.idLeague}`);
+              if (!res.ok) return [];
+              const data = await res.json();
+              return data.events || [];
+            } catch (e) {
               return [];
             }
-            const data = await res.json();
-            const events = data.events || [];
-            const delEquipo = events.filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel);
-            console.log(`[${teamLabel}] liga ${comp.idLeague} temp ${season}: ${events.length} eventos totales, ${delEquipo.length} del equipo`);
-            return events;
-          } catch (e) {
-            console.warn(`[${teamLabel}] liga ${comp.idLeague} falló:`, e.message);
-            return []; // esta competencia puntual falló, seguimos con las demás
-          }
-        })
-      );
+          })
+        );
 
-      const jugados = allMatchesArrays
-        .flat()
-        .filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel)
-        .filter((e) => e.intHomeScore !== null && e.intHomeScore !== undefined && e.intAwayScore !== null && e.intAwayScore !== undefined)
-        .map((e) => ({ ...e, _ts: e.strTimestamp ? new Date(e.strTimestamp + 'Z').getTime() : NaN }))
-        .filter((e) => !isNaN(e._ts) && e._ts <= nowMs) // descarta fechas rotas o mal cargadas antes de ordenar
-        .sort((a, b) => b._ts - a._ts);
+        const delEquipo = resultadosDelDia
+          .flat()
+          .filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel)
+          .filter((e) => e.intHomeScore !== null && e.intHomeScore !== undefined && e.intAwayScore !== null && e.intAwayScore !== undefined)
+          .map((e) => ({ ...e, _ts: e.strTimestamp ? new Date(e.strTimestamp + 'Z').getTime() : NaN }))
+          .filter((e) => !isNaN(e._ts) && e._ts <= nowMs)
+          .sort((a, b) => b._ts - a._ts);
 
-      console.log(`[${teamLabel}] candidatos jugados encontrados (los 5 más recientes):`,
-        jugados.slice(0, 5).map((e) => `${e.dateEvent} — ${e.strEvent} (${e.strLeague}) ${e.intHomeScore}-${e.intAwayScore}`));
+        if (delEquipo.length) {
+          encontrado = delEquipo[0];
+          console.log(`[${teamLabel}] encontrado en ${fechaStr}: ${encontrado.strEvent} (${encontrado.strLeague}) ${encontrado.intHomeScore}-${encontrado.intAwayScore}`);
+        }
+      }
 
-      const ev = jugados[0];
-      if (!ev) throw new Error('Sin partido jugado en ninguna competencia');
+      const ev = encontrado;
+      if (!ev) throw new Error(`Sin partido jugado en los últimos ${MAX_DIAS_ATRAS} días`);
 
       const isHome = ev.strHomeTeam === teamLabel;
       const teamScore = isHome ? ev.intHomeScore : ev.intAwayScore;
