@@ -495,9 +495,9 @@
   .discount-pct {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 64px;
+    font-size: 54px;
     line-height: 1;
-    margin-top: 14px;
+    margin-top: 10px;
     color: #2E6B3E;
   }
   .discount-store {
@@ -509,9 +509,9 @@
   .note-bignum {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 64px;
+    font-size: 54px;
     line-height: 1;
-    margin-top: 14px;
+    margin-top: 10px;
     color: var(--ink);
   }
   .note-bignum-label {
@@ -556,8 +556,8 @@
 
   .note-today-badge {
     position: absolute;
-    top: -14px;
-    left: 16px;
+    top: -12px;
+    left: -10px;
     background: var(--brick);
     color: #fff;
     font-family: 'Space Grotesk', sans-serif;
@@ -566,14 +566,14 @@
     letter-spacing: 0.04em;
     padding: 5px 14px;
     border-radius: 20px;
-    z-index: 2;
+    z-index: 3;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   }
 
   .note-next-badge {
     position: absolute;
-    top: -14px;
-    left: 16px;
+    top: -12px;
+    left: -10px;
     background: #3D6B8C;
     color: #fff;
     font-family: 'Space Grotesk', sans-serif;
@@ -582,12 +582,13 @@
     letter-spacing: 0.04em;
     padding: 5px 14px;
     border-radius: 20px;
-    z-index: 2;
+    z-index: 3;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   }
   .group-item-postit.is-next {
     box-shadow: 0 22px 60px rgba(0,0,0,0.5), 0 0 0 3px rgba(61,107,140,0.45);
   }
+  .group-item-postit.is-done { opacity: 0.62; }
 
   .full-postit.group-item-postit {
     width: 340px;
@@ -869,6 +870,21 @@
     gap: 36px;
   }
   .wf-meta b { color: var(--ink); font-size: 28px; }
+  .wf-sun {
+    margin-top: 18px;
+    font-size: 22px;
+    color: var(--ink-dim);
+  }
+  .wf-advisory {
+    margin-top: 14px;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brick);
+    background: rgba(194,105,75,0.12);
+    border-radius: 12px;
+    padding: 14px 20px;
+  }
+
   .wf-forecast-title {
     font-family: 'Kalam', cursive;
     font-size: 30px;
@@ -1001,6 +1017,65 @@
     font-weight: 600;
     color: var(--ink);
   }
+
+  .sports-countdown {
+    font-family: 'Kalam', cursive;
+    font-size: 20px;
+    text-align: center;
+    margin-top: 8px;
+    color: var(--brick);
+    font-weight: 700;
+  }
+
+  .sports-scoreline {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    text-align: center;
+  }
+  .scoreline-label {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .scoreline-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .scoreline-badge { width: 42px; height: 42px; object-fit: contain; }
+  .scoreline-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .scoreline-dash { font-size: 26px; color: var(--ink-dim); }
+  .scoreline-rival {
+    font-size: 17px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  .f1-postit { position: relative; overflow: hidden; padding-top: 76px; }
+  .f1-checkered {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 14px;
+    background:
+      repeating-conic-gradient(#1a1a1a 0% 25%, #f0f0f0 0% 50%) 0 0/14px 14px;
+  }
+  .f1-session-row.is-next {
+    background: rgba(194,105,75,0.16);
+    border-left: 4px solid var(--brick);
+    font-weight: 700;
+  }
+  .f1-session-row.is-past { opacity: 0.42; }
 
   .tv-window {
     position: fixed;
@@ -1142,6 +1217,8 @@
         <div>Sensación <b id="wf-feels">--°</b></div>
         <div>Máx <b id="wf-max">--°</b> · Mín <b id="wf-min">--°</b></div>
       </div>
+      <div class="wf-sun" id="wf-sun"></div>
+      <div class="wf-advisory" id="wf-advisory"></div>
       <div class="wf-forecast-title">📅 Próximos días</div>
       <div class="wf-forecast" id="wf-forecast"></div>
     </div>
@@ -1226,12 +1303,16 @@
       const gapPx = entries.length > 6 ? 22 : entries.length > 4 ? 30 : 44;
       groupDetailRow.style.maxWidth = (porFila * anchoItem + (porFila - 1) * gapPx) + 'px';
 
+      // el badge "PRÓXIMO" va al primer ítem que todavía está PENDIENTE
+      // (saltea los que ya están hechos, que traen ✅ en el título)
+      const idxProximo = entries.findIndex((e) => !e.done && !(e.time && e.time.includes(today)));
+
       groupDetailRow.innerHTML = '';
       entries.forEach((entry, i) => {
         const esHoy = entry.time && entry.time.includes(today);
-        const esProximo = i === 0 && !esHoy; // la lista ya viene ordenada por fecha
+        const esProximo = i === idxProximo;
         const card = document.createElement('div');
-        card.className = `full-postit group-item-postit ${sizeClass}${esProximo ? ' is-next' : ''}`;
+        card.className = `full-postit group-item-postit ${sizeClass}${esProximo ? ' is-next' : ''}${entry.done ? ' is-done' : ''}`;
         card.style.background = style.bg; // color propio de la categoría
         card.style.transform = `rotate(${rotations[i % rotations.length]})`;
         card.innerHTML = `
@@ -1253,10 +1334,17 @@
       dCat.textContent = note.dataset.cat;
       dCat.style.background = typeStyle[note.dataset.type] ? typeStyle[note.dataset.type].bg : 'rgba(43,34,16,0.08)';
       document.getElementById('d-time').classList.remove('hidden');
-      document.getElementById('d-time').textContent = note.dataset.time;
+      document.getElementById('d-time').textContent = normalizarHora(note.dataset.time);
       document.getElementById('d-title').textContent = note.dataset.title;
-      document.getElementById('d-who').textContent = note.dataset.who;
-      document.getElementById('d-desc').textContent = note.dataset.desc;
+
+      // las líneas vacías se esconden, así no queda espacio muerto ni info repetida
+      const dWho = document.getElementById('d-who');
+      dWho.textContent = note.dataset.who;
+      dWho.style.display = note.dataset.who ? 'block' : 'none';
+
+      const dDescEl = document.getElementById('d-desc');
+      dDescEl.textContent = note.dataset.desc;
+      dDescEl.style.display = note.dataset.desc ? 'block' : 'none';
 
       groupDetailRow.style.display = 'none';
       singleDetailCard.style.display = 'block';
@@ -1404,6 +1492,17 @@
       document.getElementById('wf-max').textContent = Math.round(maxs[0]) + '°';
       document.getElementById('wf-min').textContent = Math.round(mins[0]) + '°';
 
+      // amanecer/atardecer y aviso del día, con los mismos datos que ya trajimos
+      const sunEl = document.getElementById('wf-sun');
+      const sunTxt = getSunriseSunsetText(data.daily);
+      sunEl.textContent = sunTxt || '';
+      sunEl.style.display = sunTxt ? 'block' : 'none';
+
+      const advEl = document.getElementById('wf-advisory');
+      const advTxt = getWeatherAdvisory(data.daily);
+      advEl.textContent = advTxt || '';
+      advEl.style.display = advTxt ? 'block' : 'none';
+
       const forecastEl = document.getElementById('wf-forecast');
       forecastEl.innerHTML = '';
       for (let i = 0; i < days.length; i++) {
@@ -1447,7 +1546,19 @@
 
   // guarda la última info completa de cada equipo (para armar el post-it expandido)
   const matchInfo = { '135173': null, '133738': null };
+  function cuentaRegresiva(kickoffMs) {
+    const diffMs = kickoffMs - Date.now();
+    if (diffMs <= 0) return '¡En juego o por comenzar!';
+    const horas = diffMs / (1000 * 60 * 60);
+    if (horas < 1) return `En ${Math.round(diffMs / (1000 * 60))} minutos`;
+    if (horas < 24) return `Hoy, en ${Math.round(horas)} ${Math.round(horas) === 1 ? 'hora' : 'horas'}`;
+    const dias = Math.round(horas / 24);
+    if (dias === 1) return 'Mañana';
+    return `Faltan ${dias} días`;
+  }
+
   const lastResultInfo = { '135173': null, '133738': null };
+  const lastResultDetail = { '135173': null, '133738': null };
 
   async function fetchNextMatch(teamId, teamLabel, emoji) {
     const cacheKey = 'nextMatch_' + teamId;
@@ -1598,6 +1709,15 @@
       const text = `${resultEmoji} Último: ${teamLabel} ${teamScore} - ${rivalScore} ${rival}`;
       localStorage.setItem(cacheKey, text);
       lastResultInfo[teamId] = text;
+
+      // guardamos también los datos sueltos para poder dibujar el marcador con escudos
+      const detalle = {
+        teamLabel, teamScore, rivalScore, rival, resultEmoji,
+        teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge
+      };
+      lastResultDetail[teamId] = detalle;
+      localStorage.setItem(cacheKey + '_detail', JSON.stringify(detalle));
       return text;
     } catch (err) {
       console.warn(`Último resultado falló (intento ${attempt}):`, teamLabel, err.message);
@@ -1608,6 +1728,8 @@
       // ya reintentamos 3 veces, recién ahí usamos el respaldo guardado
       const cached = localStorage.getItem(cacheKey);
       lastResultInfo[teamId] = cached || null;
+      const cachedDetail = localStorage.getItem(cacheKey + '_detail');
+      if (cachedDetail) lastResultDetail[teamId] = JSON.parse(cachedDetail);
       return cached || null;
     }
   }
@@ -1731,6 +1853,21 @@
         return;
       }
 
+      const detalle = lastResultDetail[id];
+      const marcadorHtml = detalle ? `
+        <div class="sports-scoreline">
+          <div class="scoreline-label">Último partido</div>
+          <div class="scoreline-row">
+            <img class="scoreline-badge" src="${detalle.teamBadge || ''}" onerror="this.style.display='none'">
+            <span class="scoreline-num">${detalle.teamScore}</span>
+            <span class="scoreline-dash">-</span>
+            <span class="scoreline-num">${detalle.rivalScore}</span>
+            <img class="scoreline-badge" src="${detalle.rivalBadge || ''}" onerror="this.style.display='none'">
+          </div>
+          <div class="scoreline-rival">${detalle.resultEmoji} vs ${detalle.rival}</div>
+        </div>
+      ` : (lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : '');
+
       card.innerHTML = `
         <div class="sports-league">${ligaEnEspanol(info.league)}</div>
         <div class="sports-teams">
@@ -1740,19 +1877,28 @@
         </div>
         <div class="sports-matchup">${info.vsText}</div>
         <div class="sports-datetime">${info.dateTimeText}</div>
+        ${info.kickoffMs ? `<div class="sports-countdown">${cuentaRegresiva(info.kickoffMs)}</div>` : ''}
         <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
-        ${lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : ''}
+        ${marcadorHtml}
       `;
       row.appendChild(card);
     });
 
     if (isF1WeekendActive()) {
       const card = document.createElement('div');
-      card.className = 'full-postit sports-postit';
+      card.className = 'full-postit sports-postit f1-postit';
+      const nowMsF1 = Date.now();
+      const proximaSesion = f1Info.sessions.find((s) => s.utcMs > nowMsF1);
       const sessionsHtml = f1Info.sessions
-        .map((s) => `<div class="f1-session-row"><span>${s.label}</span><span>${formatSessionTime(s.utcMs)}</span></div>`)
+        .map((s) => {
+          const yaPaso = s.utcMs <= nowMsF1;
+          const esProxima = proximaSesion && s.utcMs === proximaSesion.utcMs;
+          const clase = esProxima ? 'f1-session-row is-next' : (yaPaso ? 'f1-session-row is-past' : 'f1-session-row');
+          return `<div class="${clase}"><span>${s.label}</span><span>${formatSessionTime(s.utcMs)}</span></div>`;
+        })
         .join('');
       card.innerHTML = `
+        <div class="f1-checkered"></div>
         <div class="sports-league">Fórmula 1</div>
         <div class="sports-matchup" style="margin-top:16px;">🏎️ ${f1Info.raceName}</div>
         <div class="f1-sessions">${sessionsHtml}</div>
@@ -2134,8 +2280,12 @@
     dTime.classList.remove('hidden');
     dTime.textContent = trainStatusLabel;
     document.getElementById('d-title').textContent = '🚆 Línea Belgrano Norte';
-    document.getElementById('d-desc').textContent = trainDetailText;
-    document.getElementById('d-who').textContent = 'Fuente: argentina.gob.ar';
+    const dDescTren = document.getElementById('d-desc');
+    dDescTren.textContent = trainDetailText;
+    dDescTren.style.display = 'block';
+    const dWhoTren = document.getElementById('d-who');
+    dWhoTren.textContent = 'Fuente: argentina.gob.ar';
+    dWhoTren.style.display = 'block';
     document.getElementById('groupDetailRow').style.display = 'none';
     document.getElementById('singleDetailCard').style.display = 'block';
     overlay.classList.add('show');
@@ -2168,8 +2318,9 @@
     note.dataset.type = type;
     note.dataset.time = entry.time;
     note.dataset.title = entry.title;
-    note.dataset.desc = entry.desc || `${entry.title}${entry.who ? ' — ' + entry.who : ''}`;
-    note.dataset.who = entry.who ? `${style.cat}: ${entry.who}` : style.cat;
+    // desc solo si aporta algo distinto al título (evita repetir lo mismo dos veces)
+    note.dataset.desc = entry.desc || '';
+    note.dataset.who = entry.who || '';
 
     const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
       entry.time && entry.time.includes(todayDDMM());
