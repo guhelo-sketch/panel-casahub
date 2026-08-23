@@ -1612,6 +1612,54 @@
   // ---- todas las competencias donde cada equipo puede jugar, para buscar el
   // último resultado sin importar si fue liga, copa o amistoso ----
   // ---- nombres de liga en español (la API los devuelve en inglés) ----
+  // ---- traducción de Grandes Premios de F1 ----
+  // La API los devuelve como "Dutch Grand Prix", "Spanish Grand Prix", etc.
+  // Traducimos el gentilicio y armamos "Gran Premio de Países Bajos".
+  const gpPaises = {
+    'Australian': 'Australia', 'Chinese': 'China', 'Japanese': 'Japón',
+    'Bahrain': 'Baréin', 'Saudi Arabian': 'Arabia Saudita', 'Miami': 'Miami',
+    'Emilia Romagna': 'Emilia-Romaña', 'Monaco': 'Mónaco', 'Spanish': 'España',
+    'Canadian': 'Canadá', 'Austrian': 'Austria', 'British': 'Gran Bretaña',
+    'Belgian': 'Bélgica', 'Hungarian': 'Hungría', 'Dutch': 'Países Bajos',
+    'Italian': 'Italia', 'Azerbaijan': 'Azerbaiyán', 'Singapore': 'Singapur',
+    'United States': 'Estados Unidos', 'Mexico City': 'México', 'Mexican': 'México',
+    'São Paulo': 'San Pablo', 'Brazilian': 'Brasil', 'Las Vegas': 'Las Vegas',
+    'Qatar': 'Catar', 'Abu Dhabi': 'Abu Dabi', 'French': 'Francia',
+    'German': 'Alemania', 'Portuguese': 'Portugal', 'Russian': 'Rusia',
+    'Turkish': 'Turquía', 'Styrian': 'Estiria', 'Tuscan': 'Toscana',
+    'Sakhir': 'Sakhir', 'Eifel': 'Eifel', 'Madrid': 'Madrid'
+  };
+
+  function traducirGP(nombre) {
+    if (!nombre) return nombre;
+    const m = nombre.match(/^(.+?)\s+Grand Prix$/i);
+    if (!m) return nombre;
+    const pais = gpPaises[m[1]] || m[1];
+    return `Gran Premio de ${pais}`;
+  }
+
+  // países que aparecen en la ubicación del circuito
+  const paisesEs = {
+    'Netherlands': 'Países Bajos', 'Spain': 'España', 'Italy': 'Italia',
+    'United Kingdom': 'Gran Bretaña', 'UK': 'Gran Bretaña', 'Belgium': 'Bélgica',
+    'Hungary': 'Hungría', 'Austria': 'Austria', 'Monaco': 'Mónaco',
+    'Canada': 'Canadá', 'USA': 'Estados Unidos', 'United States': 'Estados Unidos',
+    'Mexico': 'México', 'Brazil': 'Brasil', 'Japan': 'Japón', 'China': 'China',
+    'Australia': 'Australia', 'Bahrain': 'Baréin', 'Saudi Arabia': 'Arabia Saudita',
+    'Azerbaijan': 'Azerbaiyán', 'Singapore': 'Singapur', 'Qatar': 'Catar',
+    'UAE': 'Emiratos Árabes', 'France': 'Francia', 'Germany': 'Alemania',
+    'Portugal': 'Portugal', 'Turkey': 'Turquía', 'Russia': 'Rusia'
+  };
+
+  function traducirUbicacion(texto) {
+    if (!texto) return texto;
+    let out = texto;
+    Object.entries(paisesEs).forEach(([en, es]) => {
+      out = out.replace(new RegExp('\\b' + en + '\\b', 'g'), es);
+    });
+    return out;
+  }
+
   const leagueNamesEs = {
     'Argentinian Primera Division': 'Liga Profesional',
     'Argentinian Primera División': 'Liga Profesional',
@@ -1900,9 +1948,10 @@
       card.innerHTML = `
         <div class="f1-checkered"></div>
         <div class="sports-league">Fórmula 1</div>
-        <div class="sports-matchup" style="margin-top:16px;">🏎️ ${f1Info.raceName}</div>
+        <div class="sports-matchup" style="margin-top:16px;">🏎️ ${traducirGP(f1Info.raceName)}</div>
+        ${proximaSesion ? `<div class="sports-countdown">${cuentaRegresiva(proximaSesion.utcMs)} — ${proximaSesion.label}</div>` : ''}
         <div class="f1-sessions">${sessionsHtml}</div>
-        <div class="sports-venue">${f1Info.circuit ? '🏁 ' + f1Info.circuit : ''}${f1Info.locality ? ' — ' + f1Info.locality : ''}</div>
+        <div class="sports-venue">${f1Info.circuit ? '🏁 ' + f1Info.circuit : ''}${f1Info.locality ? ' — ' + traducirUbicacion(f1Info.locality) : ''}</div>
       `;
       row.appendChild(card);
     }
@@ -1928,7 +1977,7 @@
     if (isF1WeekendActive()) {
       const nowMs = Date.now();
       const next = f1Info.sessions.find((s) => s.utcMs > nowMs) || f1Info.sessions[f1Info.sessions.length - 1];
-      parts.push(`🏎️ F1 — ${f1Info.raceName}: ${next.label} ${formatSessionTime(next.utcMs)}`);
+      parts.push(`🏎️ F1 — ${traducirGP(f1Info.raceName)}: ${next.label} ${formatSessionTime(next.utcMs)}`);
     }
 
     if (!parts.length && sportsItems.length) {
