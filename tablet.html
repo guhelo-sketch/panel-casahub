@@ -440,9 +440,10 @@
 
   .notes-row {
     flex: 1;
+    min-height: 0; /* clave: permite que la fila se achique en vez de desbordar */
     display: flex;
     gap: 34px;
-    align-items: center;
+    align-items: stretch;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 6px 4px 8px;
@@ -454,7 +455,9 @@
     flex: 1 1 340px;
     max-width: 460px;
     min-width: 230px;
-    min-height: 250px;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
     padding: 30px 30px 24px;
     cursor: pointer;
     transition: transform 0.15s ease;
@@ -501,6 +504,20 @@
     font-family: 'Kalam', cursive;
     font-size: 26px;
     margin-top: 8px;
+  }
+
+  .note-bignum {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 1;
+    margin-top: 14px;
+    color: var(--ink);
+  }
+  .note-bignum-label {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    margin-top: 6px;
   }
 
   .note.grouped {
@@ -551,6 +568,25 @@
     border-radius: 20px;
     z-index: 2;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .note-next-badge {
+    position: absolute;
+    top: -14px;
+    left: 16px;
+    background: #3D6B8C;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 14px;
+    border-radius: 20px;
+    z-index: 2;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+  .group-item-postit.is-next {
+    box-shadow: 0 22px 60px rgba(0,0,0,0.5), 0 0 0 3px rgba(61,107,140,0.45);
   }
 
   .full-postit.group-item-postit {
@@ -1183,17 +1219,27 @@
       const sizeClass = entries.length <= 4 ? '' : entries.length <= 6 ? 'size-md' : 'size-sm';
       groupDetailRow.style.gap = entries.length > 6 ? '22px' : entries.length > 4 ? '30px' : '44px';
 
+      // limitamos el ancho para que las filas queden balanceadas
+      // (con 5 ítems: 3+2 en vez de 4+1 con uno huérfano abajo)
+      const porFila = entries.length <= 3 ? entries.length : Math.ceil(entries.length / Math.ceil(entries.length / 3));
+      const anchoItem = entries.length <= 4 ? 340 : entries.length <= 6 ? 250 : 180;
+      const gapPx = entries.length > 6 ? 22 : entries.length > 4 ? 30 : 44;
+      groupDetailRow.style.maxWidth = (porFila * anchoItem + (porFila - 1) * gapPx) + 'px';
+
       groupDetailRow.innerHTML = '';
       entries.forEach((entry, i) => {
         const esHoy = entry.time && entry.time.includes(today);
+        const esProximo = i === 0 && !esHoy; // la lista ya viene ordenada por fecha
         const card = document.createElement('div');
-        card.className = `full-postit group-item-postit ${sizeClass}`;
+        card.className = `full-postit group-item-postit ${sizeClass}${esProximo ? ' is-next' : ''}`;
+        card.style.background = style.bg; // color propio de la categoría
         card.style.transform = `rotate(${rotations[i % rotations.length]})`;
         card.innerHTML = `
           ${esHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+          ${esProximo ? '<div class="note-next-badge">PRÓXIMO</div>' : ''}
           <div class="group-item-icon">${style.icon}</div>
           <div class="detail-title">${entry.title}</div>
-          ${entry.time ? `<div class="detail-time">${entry.time}</div>` : ''}
+          ${entry.time ? `<div class="detail-time">${normalizarHora(entry.time)}</div>` : ''}
           ${entry.who ? `<div class="detail-who">${entry.who}</div>` : ''}
         `;
         groupDetailRow.appendChild(card);
@@ -2151,6 +2197,16 @@
     return note;
   }
 
+  // La app deja escribir la hora libre, así que llegan formatos mezclados
+  // ("0800", "8:30", "18.00"). Acá los emparejamos todos a HH:MM.
+  function normalizarHora(texto) {
+    if (!texto) return texto;
+    return texto.replace(/(\d{1,2})[.:]?(\d{2})(?!\d)/g, (match, h, m) => {
+      const hh = String(parseInt(h, 10)).padStart(2, '0');
+      return `${hh}:${m}`;
+    });
+  }
+
   function todayDDMM() {
     const now = new Date();
     return String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0');
@@ -2179,11 +2235,21 @@
     const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
       entries.some((e) => e.time && e.time.includes(todayDDMM()));
 
+    // nombre en plural según la categoría, para que el número grande tenga contexto
+    const plurales = {
+      healthAppointment: 'turnos médicos',
+      schoolTask: 'tareas',
+      discount: 'descuentos',
+      activity: 'actividades',
+      reminder: 'pagos'
+    };
+    const etiqueta = plurales[type] || style.cat.toLowerCase();
+
     note.innerHTML = `
-      <div class="note-count-badge">${entries.length}</div>
       ${hayHoy ? '<div class="note-today-badge">HOY</div>' : ''}
       <div class="note-time">${style.icon} ${style.cat}</div>
-      <div class="note-title">Ver ${entries.length} ${entries.length > 1 ? 'ítems' : 'ítem'}</div>
+      <div class="note-bignum">${entries.length}</div>
+      <div class="note-bignum-label">${etiqueta}</div>
       <div class="note-who">Tocá para ver la lista</div>
     `;
     return note;
