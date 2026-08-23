@@ -253,6 +253,20 @@
     text-align: center;
   }
 
+  /* día especial: la barra se viste de fiesta */
+  #secondaryBar.is-greeting {
+    background: linear-gradient(135deg, #F5D98B, #E8B54D);
+    border: 3px solid rgba(255,255,255,0.5);
+    box-shadow: 3px 6px 20px rgba(232,181,77,0.35);
+  }
+  #secondaryBar .greeting-text {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    font-weight: 700;
+    color: #4a3410;
+    text-align: center;
+  }
+
   .weather-note {
     background: #17221D;
     width: 44%;
@@ -518,6 +532,10 @@
     font-family: 'Kalam', cursive;
     font-size: 26px;
     margin-top: 6px;
+  }
+
+  .note.has-today {
+    box-shadow: 6px 12px 26px rgba(0,0,0,0.32), 0 0 0 4px var(--brick);
   }
 
   .note.grouped {
@@ -1078,6 +1096,63 @@
   }
   .f1-session-row.is-past { opacity: 0.42; }
 
+  .dates-next {
+    margin-top: 26px;
+    background: rgba(232,181,77,0.18);
+    border: 2px solid rgba(232,181,77,0.5);
+    border-radius: 16px;
+    padding: 22px 26px;
+    text-align: center;
+  }
+  .dates-next-label {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .dates-next-text {
+    font-family: 'Kalam', cursive;
+    font-size: 32px;
+    margin-top: 8px;
+    line-height: 1.2;
+  }
+  .dates-next-when {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brick);
+    margin-top: 8px;
+  }
+
+  .dates-list { margin-top: 24px; }
+  .dates-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    background: rgba(43,34,16,0.04);
+  }
+  .dates-row-date {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    min-width: 76px;
+  }
+  .dates-row-text {
+    font-size: 21px;
+    color: var(--ink);
+  }
+  .dates-row.is-past { opacity: 0.38; }
+  .dates-row.is-today {
+    background: rgba(194,105,75,0.16);
+    border-left: 5px solid var(--brick);
+  }
+  .dates-row.is-featured .dates-row-text { font-weight: 700; }
+
   .tv-window {
     position: fixed;
     inset: 0;
@@ -1202,6 +1277,11 @@
       <div class="detail-who" id="d-who">Asignado a</div>
     </div>
     <div class="full-postit-row" id="groupDetailRow" style="display: none;"></div>
+  </div>
+
+  <div class="overlay-full" id="datesOverlay">
+    <div class="overlay-close" id="datesClose">✕</div>
+    <div class="full-postit" id="datesCard"></div>
   </div>
 
   <div class="overlay-full" id="weatherOverlay">
@@ -1536,6 +1616,66 @@
     if (!e.target.closest('.full-postit')) {
       weatherOverlay.classList.remove('show');
     }
+  });
+
+  // ---- calendario de fechas especiales del mes ----
+  const datesOverlay = document.getElementById('datesOverlay');
+  const mesesLargos = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function renderDatesCard() {
+    const lista = fechasDelMes();
+    const hoy = new Date();
+    const nombreMes = mesesLargos[hoy.getMonth()];
+    const proxima = lista.find((f) => f.diffDias >= 0);
+
+    let html = `<div class="detail-cat" style="background: var(--mustard);">📅 ${nombreMes}</div>`;
+
+    if (proxima) {
+      const cuando = proxima.diffDias === 0 ? '¡Es hoy!' :
+                     proxima.diffDias === 1 ? 'Es mañana' :
+                     `Faltan ${proxima.diffDias} días`;
+      html += `
+        <div class="dates-next">
+          <div class="dates-next-label">Lo próximo</div>
+          <div class="dates-next-text">${proxima.texto}</div>
+          <div class="dates-next-when">${proxima.fecha} · ${cuando}</div>
+        </div>
+      `;
+    }
+
+    if (!lista.length) {
+      html += `<div class="detail-desc">No hay fechas especiales este mes.</div>`;
+    } else {
+      html += '<div class="dates-list">';
+      lista.forEach((f) => {
+        const pasada = f.diffDias < 0;
+        const esHoy = f.diffDias === 0;
+        html += `
+          <div class="dates-row ${pasada ? 'is-past' : ''} ${esHoy ? 'is-today' : ''} ${f.destacada ? 'is-featured' : ''}">
+            <span class="dates-row-date">${f.fecha}</span>
+            <span class="dates-row-text">${f.texto}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+
+    document.getElementById('datesCard').innerHTML = html;
+  }
+
+  document.querySelector('.clock-note').style.cursor = 'pointer';
+  document.querySelector('.clock-note').addEventListener('click', () => {
+    renderDatesCard();
+    datesOverlay.classList.add('show');
+  });
+  datesOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      datesOverlay.classList.remove('show');
+    }
+  });
+
+  loadFeriados().then(() => {
+    if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
   });
 
   // ---- ticker: próximos partidos (TheSportsDB) ----
@@ -2118,6 +2258,150 @@
   };
 
   // fechas de eclipses 2026-2027, dato astronómico fijo — no depende de ninguna API
+  // ═══════════════════════════════════════════════════════════════
+  // FECHAS ESPECIALES
+  // Grupo 1 → el saludo se queda FIJO todo el día (mimo)
+  // Grupo 2 → rota junto con la luna, el sol y los avisos
+  // ═══════════════════════════════════════════════════════════════
+
+  // fechas fijas del grupo 1, formato 'DD/MM'
+  const fechasGrupo1 = [
+    { fecha: '06/03', texto: '🎂 ¡Feliz cumpleaños, Gustavo!' },
+    { fecha: '18/03', texto: '🎂 ¡Feliz cumpleaños, Perla!' },
+    { fecha: '13/04', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!' },
+    { fecha: '13/08', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!' },
+    { fecha: '13/11', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!' },
+    { fecha: '17/12', texto: '📊 ¡Feliz Día del Contador, Perla!' },
+    { fecha: '26/12', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!' },
+    { fecha: '25/12', texto: '🎄 ¡Feliz Navidad para toda la familia!' },
+    { fecha: '01/01', texto: '🎉 ¡Feliz Año Nuevo!' },
+    { fecha: '20/02', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
+    { fecha: '08/08', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
+    { fecha: '29/10', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
+    { fecha: '25/03', texto: '🐱 ¡Feliz cumpleaños, Wall-e!' },
+    { fecha: '28/03', texto: '🐱 ¡Feliz cumpleaños, Mabel!' }
+  ];
+
+  // fechas fijas del grupo 2 (rotan, no se quedan fijas)
+  const fechasGrupo2 = [
+    { fecha: '05/01', texto: '🎂 Hoy cumple años Pablo' },
+    { fecha: '04/04', texto: '🎂 Hoy cumple años Teo' },
+    { fecha: '07/07', texto: '🎂 Hoy cumple años Zuni' },
+    { fecha: '12/07', texto: '🎂 Hoy cumple años Ignacio' },
+    { fecha: '26/07', texto: '👴 Día de los Abuelos' },
+    { fecha: '20/08', texto: '🎂 Hoy cumple años Kiara' },
+    { fecha: '24/09', texto: '🎂 Hoy cumple años Gloria' },
+    { fecha: '28/09', texto: '🎂 Hoy cumple años Aldana' },
+    { fecha: '22/11', texto: '🎂 Hoy cumple años Martin' }
+  ];
+
+  // ---- fechas móviles: se calculan solas cada año ----
+  function domingoNumero(anio, mes, n) { // mes 1-12, n = 1er/2do/3er domingo
+    const primero = new Date(anio, mes - 1, 1);
+    const diasHastaDomingo = (7 - primero.getDay()) % 7;
+    return new Date(anio, mes - 1, 1 + diasHastaDomingo + (n - 1) * 7);
+  }
+
+  function lunesNumero(anio, mes, n) {
+    const primero = new Date(anio, mes - 1, 1);
+    const diasHastaLunes = (8 - primero.getDay()) % 7;
+    return new Date(anio, mes - 1, 1 + diasHastaLunes + (n - 1) * 7);
+  }
+
+  function ddmm(date) {
+    return String(date.getDate()).padStart(2, '0') + '/' + String(date.getMonth() + 1).padStart(2, '0');
+  }
+
+  // ---- feriados nacionales: API gratuita, sin clave ----
+  let feriadosDelAnio = [];
+
+  function fechasMoviles(anio) {
+    const lista = [
+      { fecha: ddmm(domingoNumero(anio, 6, 3)), texto: '👨 ¡Feliz Día del Padre, Gustavo!', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 10, 3)), texto: '👩 ¡Feliz Día de la Madre, Perla!', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 8, 3)), texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 11, 2)), texto: '👵 Día de la Abuela', grupo: 2 }
+    ];
+
+    // Día del Plástico: 3er lunes de noviembre, pasa al martes si ese lunes es feriado
+    const lunesPlastico = lunesNumero(anio, 11, 3);
+    let fechaPlastico = lunesPlastico;
+    if (feriadosDelAnio.some((f) => f.fecha === ymd(lunesPlastico))) {
+      fechaPlastico = new Date(lunesPlastico.getTime() + 86400000);
+    }
+    lista.push({ fecha: ddmm(fechaPlastico), texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', grupo: 1 });
+
+    return lista;
+  }
+
+  function ymd(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+
+  async function loadFeriados() {
+    const anio = new Date().getFullYear();
+    const cacheKey = 'feriados_' + anio;
+    try {
+      const res = await fetch(`https://api.argentinadatos.com/v1/feriados/${anio}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      // la API devuelve [{ fecha, tipo, nombre }] — contemplamos 'motivo' por si cambia
+      feriadosDelAnio = (data || []).map((f) => ({ fecha: f.fecha, texto: '🇦🇷 ' + (f.nombre || f.motivo || 'Feriado') }));
+      localStorage.setItem(cacheKey, JSON.stringify(feriadosDelAnio));
+    } catch (err) {
+      console.warn('Feriados sin conexión, uso guardado:', err.message);
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) feriadosDelAnio = JSON.parse(cached);
+    }
+  }
+
+  // ---- junta todo lo del día de hoy ----
+  function fechasDeHoy() {
+    const hoy = new Date();
+    const hoyDDMM = ddmm(hoy);
+    const hoyYMD = ymd(hoy);
+    const moviles = fechasMoviles(hoy.getFullYear());
+
+    const grupo1 = [
+      ...fechasGrupo1.filter((f) => f.fecha === hoyDDMM),
+      ...moviles.filter((f) => f.grupo === 1 && f.fecha === hoyDDMM)
+    ];
+    const grupo2 = [
+      ...fechasGrupo2.filter((f) => f.fecha === hoyDDMM),
+      ...moviles.filter((f) => f.grupo === 2 && f.fecha === hoyDDMM),
+      ...feriadosDelAnio.filter((f) => f.fecha === hoyYMD)
+    ];
+    return { grupo1, grupo2 };
+  }
+
+  // ---- todas las fechas del mes en curso, para la pantalla del calendario ----
+  function fechasDelMes() {
+    const hoy = new Date();
+    const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
+    const moviles = fechasMoviles(hoy.getFullYear());
+
+    const todas = [
+      ...fechasGrupo1.map((f) => ({ ...f, destacada: true })),
+      ...fechasGrupo2.map((f) => ({ ...f, destacada: false })),
+      ...moviles.map((f) => ({ ...f, destacada: f.grupo === 1 })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto, destacada: false };
+      })
+    ];
+
+    return todas
+      .filter((f) => f.fecha.split('/')[1] === mesActual)
+      .map((f) => {
+        const [d, m] = f.fecha.split('/');
+        const fechaObj = new Date(hoy.getFullYear(), parseInt(m, 10) - 1, parseInt(d, 10));
+        const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const diffDias = Math.round((fechaObj - hoySinHora) / 86400000);
+        return { ...f, diffDias, fechaObj };
+      })
+      .sort((a, b) => a.fechaObj - b.fechaObj);
+  }
+
   const eclipses = [
     { date: '2026-02-17', type: 'solar', label: 'Eclipse solar anular', ic: '☀️', phrase: '"Hoy el cielo se detiene un instante — buen día para pausar vos también."' },
     { date: '2026-03-02', type: 'lunar', label: 'Eclipse lunar total', ic: '🌕', phrase: '"La Luna se tiñe de sombra hoy — dejá ir lo que ya cumplió su ciclo."' },
@@ -2182,9 +2466,20 @@
       return;
     }
 
+    const { grupo1, grupo2 } = fechasDeHoy();
+
+    // si hay algo de familia directa, el saludo se queda FIJO todo el día (el mimo)
+    if (grupo1.length) {
+      secondaryItems = grupo1.map((f) => ({ type: 'greeting', text: f.texto }));
+      return;
+    }
+
     const items = [];
 
     if (isTuesday()) items.push({ type: 'train' });
+
+    // lo del grupo 2 (cumpleaños de otros, feriados, días varios) sí rota con el resto
+    grupo2.forEach((f) => items.push({ type: 'greeting', text: f.texto }));
 
     const moonInfo = getMoonPhaseInfo(new Date());
     const eclipseToday = eclipses.find((e) => e.date === todayISO());
@@ -2218,6 +2513,7 @@
   function renderSecondaryItem(item) {
     const bar = document.getElementById('secondaryBar');
     bar.dataset.currentType = item.type;
+    bar.classList.toggle('is-greeting', item.type === 'greeting');
 
     if (item.type === 'train') {
       bar.innerHTML = `
@@ -2228,6 +2524,8 @@
       `;
     } else if (item.type === 'moon') {
       bar.innerHTML = `<span class="ic">${item.ic}</span><span class="train-bar-title">${item.name}</span>`;
+    } else if (item.type === 'greeting') {
+      bar.innerHTML = `<span class="greeting-text">${item.text}</span>`;
     } else {
       bar.innerHTML = `<span class="secondary-text">${item.text}</span>`;
     }
@@ -2361,7 +2659,9 @@
   function buildSingleNote(type, entry, index) {
     const style = typeStyle[type];
     const note = document.createElement('div');
-    note.className = 'note dynamic-pending';
+    const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entry.time && entry.time.includes(todayDDMM());
+    note.className = 'note dynamic-pending' + (esHoy ? ' has-today' : '');
     note.style.background = entry.done ? 'var(--sage)' : style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
     note.dataset.cat = style.cat;
@@ -2371,9 +2671,6 @@
     // desc solo si aporta algo distinto al título (evita repetir lo mismo dos veces)
     note.dataset.desc = entry.desc || '';
     note.dataset.who = entry.who || '';
-
-    const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
-      entry.time && entry.time.includes(todayDDMM());
 
     if (type === 'discount') {
       // separa "20% en Chango Más" en el número gigante + el comercio
@@ -2416,7 +2713,9 @@
   function buildGroupedNote(type, entries, index) {
     const style = typeStyle[type];
     const note = document.createElement('div');
-    note.className = 'note dynamic-pending grouped';
+    const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entries.some((e) => e.time && e.time.includes(todayDDMM()));
+    note.className = 'note dynamic-pending grouped' + (hayHoy ? ' has-today' : '');
     note.style.background = style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
 
@@ -2432,9 +2731,6 @@
     note.dataset.who = style.cat;
     // todas las categorías agrupadas usan el modo de post-its individuales
     note.dataset.entriesJson = JSON.stringify({ type, entries });
-
-    const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
-      entries.some((e) => e.time && e.time.includes(todayDDMM()));
 
     // nombre en plural según la categoría, para que el número grande tenga contexto
     const plurales = {
