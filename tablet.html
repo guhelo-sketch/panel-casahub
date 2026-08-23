@@ -1197,6 +1197,7 @@
   .week-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    align-items: stretch;
     gap: 12px;
     margin-top: 26px;
   }
@@ -1204,7 +1205,9 @@
     background: rgba(43,34,16,0.05);
     border-radius: 14px;
     padding: 14px 10px;
-    min-height: 190px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
   }
   .week-day.is-today {
     background: rgba(194,105,75,0.14);
@@ -1759,7 +1762,7 @@
       });
       // fechas especiales de ese día
       todasEspeciales.filter((f) => f.fecha === diaDDMM).forEach((f) => {
-        items.push({ ic: '⭐', txt: f.texto, destacada: f.destacada });
+        items.push({ ic: '⭐', txt: f.listado || f.texto, destacada: f.destacada });
       });
 
       html += `
@@ -1809,7 +1812,7 @@
       html += `
         <div class="dates-next">
           <div class="dates-next-label">Lo próximo</div>
-          <div class="dates-next-text">${proxima.texto}</div>
+          <div class="dates-next-text">${proxima.diffDias === 0 ? proxima.texto : (proxima.listado || proxima.texto)}</div>
           <div class="dates-next-when">${proxima.fecha} · ${cuando}</div>
         </div>
       `;
@@ -1825,7 +1828,7 @@
         html += `
           <div class="dates-row ${pasada ? 'is-past' : ''} ${esHoy ? 'is-today' : ''} ${f.destacada ? 'is-featured' : ''}">
             <span class="dates-row-date">${f.fecha}</span>
-            <span class="dates-row-text">${f.texto}</span>
+            <span class="dates-row-text">${f.listado || f.texto}</span>
           </div>
         `;
       });
@@ -2438,33 +2441,34 @@
 
   // fechas fijas del grupo 1, formato 'DD/MM'
   const fechasGrupo1 = [
-    { fecha: '06/03', texto: '🎂 ¡Feliz cumpleaños, Gustavo!' },
-    { fecha: '18/03', texto: '🎂 ¡Feliz cumpleaños, Perla!' },
-    { fecha: '13/04', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!' },
-    { fecha: '13/08', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!' },
-    { fecha: '13/11', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!' },
-    { fecha: '17/12', texto: '📊 ¡Feliz Día del Contador, Perla!' },
-    { fecha: '26/12', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!' },
-    { fecha: '25/12', texto: '🎄 ¡Feliz Navidad para toda la familia!' },
-    { fecha: '01/01', texto: '🎉 ¡Feliz Año Nuevo!' },
-    { fecha: '20/02', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
-    { fecha: '08/08', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
-    { fecha: '29/10', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!' },
-    { fecha: '25/03', texto: '🐱 ¡Feliz cumpleaños, Wall-e!' },
-    { fecha: '28/03', texto: '🐱 ¡Feliz cumpleaños, Mabel!' }
+    { fecha: '06/03', texto: '🎂 ¡Feliz cumpleaños, Gustavo!', listado: '🎂 Cumpleaños de Gustavo' },
+    { fecha: '18/03', texto: '🎂 ¡Feliz cumpleaños, Perla!', listado: '🎂 Cumpleaños de Perla' },
+    { fecha: '13/04', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!', listado: '🎂 Cumpleaños de Lorenzo' },
+    { fecha: '13/08', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!', listado: '🤚 Día del Zurdo' },
+    { fecha: '13/11', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!', listado: '💍 Aniversario de casados' },
+    { fecha: '17/12', texto: '📊 ¡Feliz Día del Contador, Perla!', listado: '📊 Día del Contador' },
+    { fecha: '26/12', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!', listado: '❤️ Aniversario de novios' },
+    { fecha: '25/12', texto: '🎄 ¡Feliz Navidad para toda la familia!', listado: '🎄 Navidad' },
+    { fecha: '01/01', texto: '🎉 ¡Feliz Año Nuevo!', listado: '🎉 Año Nuevo' },
+    { fecha: '20/02', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato' },
+    { fecha: '08/08', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato' },
+    { fecha: '29/10', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato' },
+    { fecha: '25/03', texto: '🐱 ¡Feliz cumpleaños, Wall-e!', listado: '🐱 Cumpleaños de Wall-e' },
+    { fecha: '28/03', texto: '🐱 ¡Feliz cumpleaños, Mabel!', listado: '🐱 Cumpleaños de Mabel' }
   ];
 
   // fechas fijas del grupo 2 (rotan, no se quedan fijas)
+  // 'texto' = el saludo del día · 'listado' = cómo se ve en el calendario y la semana
   const fechasGrupo2 = [
-    { fecha: '05/01', texto: '🎂 Hoy cumple años Pablo' },
-    { fecha: '04/04', texto: '🎂 Hoy cumple años Teo' },
-    { fecha: '07/07', texto: '🎂 Hoy cumple años Zuni' },
-    { fecha: '12/07', texto: '🎂 Hoy cumple años Ignacio' },
-    { fecha: '26/07', texto: '👴 Día de los Abuelos' },
-    { fecha: '26/08', texto: '🎂 Hoy cumple años Kiara' },
-    { fecha: '24/09', texto: '🎂 Hoy cumple años Gloria' },
-    { fecha: '28/09', texto: '🎂 Hoy cumple años Aldana' },
-    { fecha: '22/11', texto: '🎂 Hoy cumple años Martin' }
+    { fecha: '05/01', texto: '🎂 ¡Hoy cumple años Pablo!', listado: '🎂 Cumpleaños de Pablo' },
+    { fecha: '04/04', texto: '🎂 ¡Hoy cumple años Teo!', listado: '🎂 Cumpleaños de Teo' },
+    { fecha: '07/07', texto: '🎂 ¡Hoy cumple años Zuni!', listado: '🎂 Cumpleaños de Zuni' },
+    { fecha: '12/07', texto: '🎂 ¡Hoy cumple años Ignacio!', listado: '🎂 Cumpleaños de Ignacio' },
+    { fecha: '26/07', texto: '👴 Día de los Abuelos', listado: '👴 Día de los Abuelos' },
+    { fecha: '26/08', texto: '🎂 ¡Hoy cumple años Kiara!', listado: '🎂 Cumpleaños de Kiara' },
+    { fecha: '24/09', texto: '🎂 ¡Hoy cumple años Gloria!', listado: '🎂 Cumpleaños de Gloria' },
+    { fecha: '28/09', texto: '🎂 ¡Hoy cumple años Aldana!', listado: '🎂 Cumpleaños de Aldana' },
+    { fecha: '22/11', texto: '🎂 ¡Hoy cumple años Martin!', listado: '🎂 Cumpleaños de Martin' }
   ];
 
   // ---- fechas móviles: se calculan solas cada año ----
@@ -2489,10 +2493,10 @@
 
   function fechasMoviles(anio) {
     const lista = [
-      { fecha: ddmm(domingoNumero(anio, 6, 3)), texto: '👨 ¡Feliz Día del Padre, Gustavo!', grupo: 1 },
-      { fecha: ddmm(domingoNumero(anio, 10, 3)), texto: '👩 ¡Feliz Día de la Madre, Perla!', grupo: 1 },
-      { fecha: ddmm(domingoNumero(anio, 8, 3)), texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', grupo: 1 },
-      { fecha: ddmm(domingoNumero(anio, 11, 2)), texto: '👵 Día de la Abuela', grupo: 2 }
+      { fecha: ddmm(domingoNumero(anio, 6, 3)), texto: '👨 ¡Feliz Día del Padre, Gustavo!', listado: '👨 Día del Padre', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 10, 3)), texto: '👩 ¡Feliz Día de la Madre, Perla!', listado: '👩 Día de la Madre', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 8, 3)), texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', listado: '🧒 Día del Niño', grupo: 1 },
+      { fecha: ddmm(domingoNumero(anio, 11, 2)), texto: '👵 Día de la Abuela', listado: '👵 Día de la Abuela', grupo: 2 }
     ];
 
     // Día del Plástico: 3er lunes de noviembre, pasa al martes si ese lunes es feriado
@@ -2501,7 +2505,7 @@
     if (feriadosDelAnio.some((f) => f.fecha === ymd(lunesPlastico))) {
       fechaPlastico = new Date(lunesPlastico.getTime() + 86400000);
     }
-    lista.push({ fecha: ddmm(fechaPlastico), texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', grupo: 1 });
+    lista.push({ fecha: ddmm(fechaPlastico), texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', listado: '🏭 Día del Plástico', grupo: 1 });
 
     return lista;
   }
