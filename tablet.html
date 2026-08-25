@@ -1853,6 +1853,13 @@
     if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
   });
 
+  // Estado del tren. Van declaradas ACÁ ARRIBA a propósito: si quedan más abajo,
+  // los martes (cuando el primer ítem que se dibuja es el tren) se usan antes de
+  // existir y el panel entero se corta a la mitad.
+  let trainStatusLabel = 'Consultando...';
+  let trainDetailText = 'Sin datos por ahora.';
+  let trainCurrentStatus = 'gris';
+
   // ---- ticker: próximos partidos (TheSportsDB) ----
   let sportsItems = [];
   let tickerIndex = 0;
@@ -2727,10 +2734,6 @@
   setInterval(buildSecondaryItems, 1000 * 60 * 60); // rearma la lista cada hora
 
 
-
-  let trainStatusLabel = 'Consultando...';
-  let trainDetailText = 'Sin datos por ahora.';
-  let trainCurrentStatus = 'gris';
 
   async function tryFetchTrain(url) {
     const controller = new AbortController();
