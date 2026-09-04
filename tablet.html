@@ -1248,6 +1248,65 @@
     font-size: 18px;
   }
 
+  .mid-zone {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .mid-zone-center { flex: 1; min-width: 0; }
+
+  .efemeride-postit {
+    position: relative;
+    width: 210px;
+    flex-shrink: 0;
+    background: #E8DCC0;
+    border-radius: 4px;
+    padding: 26px 16px 18px;
+    box-shadow: 3px 6px 16px rgba(0,0,0,0.35);
+    transform: rotate(-2deg);
+    text-align: center;
+    display: none; /* solo aparece si hay efeméride ese día */
+  }
+  .efemeride-postit.show { display: block; }
+  .efemeride-right { transform: rotate(2deg); }
+
+  .efemeride-tack {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #E36B5A, #A83A2C);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.45);
+  }
+  .efemeride-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(43,34,16,0.5);
+    font-weight: 700;
+  }
+  .efemeride-text {
+    font-family: 'Kalam', cursive;
+    font-size: 19px;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-top: 8px;
+  }
+
+  .efemeride-tack.tack-blue {
+    background: radial-gradient(circle at 35% 30%, #6FA8D6, #2E5F87);
+  }
+  .proxima-cuando {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--brick);
+    margin-top: 8px;
+  }
+
   .tv-window {
     position: fixed;
     inset: 0;
@@ -1338,7 +1397,6 @@
       <div class="weekday" id="weekday">jueves</div>
       <div class="fulldate" id="fulldate">6 de agosto</div>
       <div class="clock" id="clock">14<span>:32</span></div>
-      <div class="phrase-line" id="phraseLine">📌 "Un mate a tiempo es una tarde salvada."</div>
     </div>
   </div>
 
@@ -1346,13 +1404,29 @@
     <span class="news-text" id="newsText">Cargando cotizaciones...</span>
   </div>
 
-  <div class="train-bar-row">
-    <div class="train-bar" id="secondaryBar"></div>
-  </div>
+  <div class="mid-zone">
+    <div class="efemeride-postit show" id="efemeridePostit">
+      <div class="efemeride-tack"></div>
+      <div class="efemeride-label" id="efemerideLabel">Efeméride de hoy</div>
+      <div class="efemeride-text" id="efemerideText"></div>
+    </div>
 
-  <div class="pending-label-row">
-    <div class="pending-label" id="pendingLabel">🏠 CasaHub Loureiro-Sánchez</div>
-    <div class="week-btn" id="weekBtn" title="Ver la semana">🗓️</div>
+    <div class="mid-zone-center">
+      <div class="train-bar-row">
+        <div class="train-bar" id="secondaryBar"></div>
+      </div>
+
+      <div class="pending-label-row">
+        <div class="pending-label" id="pendingLabel">🏠 CasaHub Loureiro-Sánchez</div>
+        <div class="week-btn" id="weekBtn" title="Ver la semana">🗓️</div>
+      </div>
+    </div>
+
+    <div class="efemeride-postit efemeride-right show" id="efemerideRight">
+      <div class="efemeride-tack tack-blue"></div>
+      <div class="efemeride-label">Lo que se viene</div>
+      <div class="efemeride-text" id="proximaFechaText">—</div>
+    </div>
   </div>
 
   <div class="overlay-full" id="weekOverlay">
@@ -1424,6 +1498,60 @@
 </div>
 
 <script>
+  // ── helpers y tablas que se usan apenas arranca el panel ──
+  // (van al principio a propósito: si quedan más abajo, se usan antes de existir
+  //  y el panel se corta a la mitad)
+  function ddmm(date) {
+    return String(date.getDate()).padStart(2, '0') + '/' + String(date.getMonth() + 1).padStart(2, '0');
+  }
+
+  // ---- efemérides argentinas: tabla local, no depende de ninguna API ----
+  const efemerides = {
+    '19/01': 'Día del Trabajador Cervecero',
+    '25/01': 'Día Nacional del Reportero Gráfico',
+    '26/01': 'Día del Pescador',
+    '04/02': 'Día del Guardavidas',
+    '14/02': 'Día de los Enamorados',
+    '15/02': 'Día del Redactor Publicitario',
+    '24/02': 'Día del Mecánico Automotor',
+    '04/03': 'Día del Hermano',
+    '06/03': 'Día del Escultor',
+    '19/03': 'Día del Carpintero y del Artesano',
+    '01/04': 'Día Nacional del Donante Voluntario de Médula Ósea',
+    '03/04': 'Día del Personal de Casas Particulares',
+    '10/04': 'Día del Investigador Científico',
+    '26/04': 'Día del Librero',
+    '01/05': 'Día del Trabajador',
+    '07/05': 'Día del Taxista',
+    '28/05': 'Día de los Jardines de Infantes y de la Maestra Jardinera',
+    '02/06': 'Día del Bombero Voluntario',
+    '07/06': 'Día del Periodista',
+    '15/06': 'Día del Bioquímico',
+    '27/06': 'Día del Trabajador del Estado',
+    '03/07': 'Día del Locutor',
+    '20/07': 'Día del Amigo',
+    '11/08': 'Día del Nutricionista',
+    '24/08': 'Día del Lector',
+    '29/08': 'Día del Abogado',
+    '04/09': 'Día del Inmigrante',
+    '11/09': 'Día del Maestro',
+    '13/09': 'Día del Bibliotecario',
+    '17/09': 'Día del Profesor',
+    '21/09': 'Día del Estudiante y de la Sanidad',
+    '01/10': 'Día del Guardaparque Nacional',
+    '24/10': 'Día del Diseñador Gráfico',
+    '06/11': 'Día del Bancario',
+    '10/11': 'Día de la Tradición',
+    '22/11': 'Día del Gráfico y del Músico',
+    '03/12': 'Día del Médico',
+    '15/12': 'Día del Camionero',
+    '17/12': 'Día del Contador Público'
+  };
+
+  function efemerideDeHoy() {
+    return efemerides[ddmm(new Date())] || null;
+  }
+
   function pad(n){ return n.toString().padStart(2,'0'); }
   const weekdays = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1440,6 +1568,8 @@
   setInterval(tick, 1000 * 10);
 
   // ---- frase del día: rota sola, una distinta por día ----
+  let fraseDelDiaActual = '';
+  let postItsListos = false;
   const dailyPhrases = [
     '"Un mate a tiempo es una tarde salvada."',
     '"No hay lunes que no llegue ni plazo que no se cumpla."',
@@ -1455,7 +1585,10 @@
   function updateDailyPhrase() {
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     const phrase = dailyPhrases[dayOfYear % dailyPhrases.length];
-    document.getElementById('phraseLine').innerHTML = '📌 ' + phrase;
+    fraseDelDiaActual = phrase;
+    // al arrancar, esto corre antes de que existan las tablas de fechas: el arranque
+    // de los post-its se hace al final del script, así que acá solo refrescamos si ya está listo
+    if (postItsListos) renderEfemeride();
   }
   updateDailyPhrase();
   setInterval(updateDailyPhrase, 1000 * 60 * 60); // revisa cada hora, cambia al cruzar de día
@@ -1848,6 +1981,35 @@
       datesOverlay.classList.remove('show');
     }
   });
+
+  // ---- efeméride del día: aparece solo si hay una para hoy ----
+  // ---- los dos post-its de los costados ----
+  // Izquierda: la efeméride del día, o la frase del día si hoy no hay efeméride
+  // Derecha: la próxima fecha del calendario familiar (siempre hay una)
+  function renderEfemeride() {
+    const efem = efemerideDeHoy();
+    if (efem) {
+      document.getElementById('efemerideLabel').textContent = 'Efeméride de hoy';
+      document.getElementById('efemerideText').textContent = efem;
+    } else {
+      document.getElementById('efemerideLabel').textContent = 'Frase del día';
+      document.getElementById('efemerideText').textContent = fraseDelDiaActual || '';
+    }
+
+    // ---- próxima fecha familiar ----
+    const proxima = proximaFechaEspecial();
+    const el = document.getElementById('proximaFechaText');
+    if (proxima) {
+      const cuando = proxima.diffDias === 0 ? '¡Es hoy!' :
+                     proxima.diffDias === 1 ? 'Es mañana' :
+                     `Faltan ${proxima.diffDias} días`;
+      el.innerHTML = `${proxima.listado || proxima.texto}<div class="proxima-cuando">${cuando}</div>`;
+    } else {
+      el.textContent = 'Sin fechas próximas';
+    }
+  }
+  setInterval(renderEfemeride, 1000 * 60 * 30); // por si cruza la medianoche
+  // la primera llamada va al final del script, cuando ya existen las tablas de fechas
 
   loadFeriados().then(() => {
     if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
@@ -2491,10 +2653,6 @@
     return new Date(anio, mes - 1, 1 + diasHastaLunes + (n - 1) * 7);
   }
 
-  function ddmm(date) {
-    return String(date.getDate()).padStart(2, '0') + '/' + String(date.getMonth() + 1).padStart(2, '0');
-  }
-
   // ---- feriados nacionales: API gratuita, sin clave ----
   let feriadosDelAnio = [];
 
@@ -2558,6 +2716,37 @@
   }
 
   // ---- todas las fechas del mes en curso, para la pantalla del calendario ----
+  // ---- la próxima fecha especial, mirando hasta 60 días adelante ----
+  // (así a fin de mes no queda vacío: sigue al mes siguiente, y al año siguiente si hace falta)
+  function proximaFechaEspecial() {
+    const hoy = new Date();
+    const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    const armarLista = (anio) => [
+      ...fechasGrupo1.map((f) => ({ ...f })),
+      ...fechasGrupo2.map((f) => ({ ...f })),
+      ...fechasMoviles(anio).map((f) => ({ ...f })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto };
+      })
+    ];
+
+    const candidatos = [];
+    // este año y el que viene, para cubrir el salto de diciembre a enero
+    [hoy.getFullYear(), hoy.getFullYear() + 1].forEach((anio) => {
+      armarLista(anio).forEach((f) => {
+        const [d, m] = f.fecha.split('/');
+        const fechaObj = new Date(anio, parseInt(m, 10) - 1, parseInt(d, 10));
+        const diffDias = Math.round((fechaObj - hoySinHora) / 86400000);
+        if (diffDias >= 0 && diffDias <= 60) candidatos.push({ ...f, diffDias, fechaObj });
+      });
+    });
+
+    candidatos.sort((a, b) => a.diffDias - b.diffDias);
+    return candidatos[0] || null;
+  }
+
   function fechasDelMes() {
     const hoy = new Date();
     const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -2929,7 +3118,7 @@
       <div class="note-time">${style.icon} ${style.cat}</div>
       <div class="note-bignum">${entries.length}</div>
       <div class="note-bignum-label">${etiqueta}</div>
-      <div class="note-who">Tocá para ver la lista</div>
+      <div class="note-who">Tocá para ver</div>
     `;
     return note;
   }
@@ -3092,6 +3281,11 @@
   tvWindow.addEventListener('click', (e) => {
     if (!e.target.closest('.tv-frame')) stopTV();
   });
+
+  // arranque de los post-its laterales (acá abajo porque necesita las tablas de fechas ya cargadas)
+  postItsListos = true;
+  renderEfemeride();
+
 </script>
 
 </body>
