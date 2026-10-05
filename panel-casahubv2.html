@@ -1,0 +1,4085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Panel del día</title>
+<!-- "only light": le pide a Android/la tablet que NO oscurezca la página por su cuenta
+     (el modo oscuro automático invertía los colores de las tarjetas y dejaba textos ilegibles) -->
+<meta name="color-scheme" content="only light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+  :root {
+    --board: #26332C;
+    --board-2: #2e3d33;
+    --line: rgba(241,236,221,0.10);
+    --cream: #F1ECDD;
+    --cream-dim: #ABB6A2;
+    --mustard: #E8B54D;
+    --sage: #DCE6D6;
+    --sky: #D9E8F0;
+    --teal: #C9E4DD;
+    --lilac: #E3DAF0;
+    --ink: #2b2210;
+    --ink-dim: rgba(43,34,16,0.55);
+    --brick: #C2694B;
+    --brick-paper: #F3D9C9;
+    /* un color por persona, el mismo en todo el panel */
+    --p-gustavo: #3D6B8C;
+    --p-perla: #B4537A;
+    --p-lorenzo: #D9822B;
+    --p-otro: #7A7466;
+    color-scheme: only light;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--board);
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+
+  body { display: flex; align-items: center; justify-content: center; }
+
+  .device {
+    width: 100vw;
+    height: 100vh;
+    background:
+      radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1.3px) 0 0/5px 5px,
+      radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1.3px) 2px 3px/7px 7px,
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: none;
+    padding: 26px 38px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: filter 0.6s ease;
+  }
+
+  .device.night-hidden { display: none; }
+
+  .night-clock {
+    position: fixed;
+    inset: 0;
+    background: #05070a;
+    display: none;
+    z-index: 100;
+  }
+  .night-clock.show { display: block; }
+  .night-clock-content {
+    position: absolute;
+    top: 48%;   /* posición inicial: sin esto, hasta el primer movimiento quedaba cortado en la esquina */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    transition: top 4s ease-in-out, left 4s ease-in-out;
+  }
+  .night-clock-date {
+    font-family: 'Kalam', cursive;
+    font-size: 42px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 10px;
+  }
+  .night-clock-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 160px;
+    color: rgba(255,255,255,0.42);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .night-clock-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.24);
+    margin-top: 14px;
+  }
+  .night-clock-fiesta {
+    font-family: 'Kalam', cursive;
+    font-size: 34px;
+    color: rgba(232,181,77,0.38);
+    margin-top: 18px;
+  }
+  .night-clock-fiesta:empty { display: none; }
+
+  .status {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: var(--cream-dim);
+    letter-spacing: 0.04em;
+  }
+  .status .dot-live {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #8FBF8A;
+    box-shadow: 0 0 0 2px rgba(143,191,138,0.18);
+  }
+
+  .postit {
+    position: relative;
+    border-radius: 4px;
+    box-shadow: 3px 7px 16px rgba(0,0,0,0.35);
+    color: var(--ink);
+  }
+  .postit::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 42px;
+    height: 16px;
+    background: rgba(241,236,221,0.55);
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 18px;
+    padding-top: 2px;
+  }
+  .top-row > * { display: flex; flex-direction: column; justify-content: center; }
+
+  .mid-widgets {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.18);
+    border: 2px solid rgba(241,236,221,0.15);
+    border-radius: 20px;
+    padding: 14px 18px 16px;
+  }
+
+  .mid-widgets-label {
+    font-family: 'Kalam', cursive;
+    font-size: 14px;
+    color: var(--cream-dim);
+    letter-spacing: 0.03em;
+  }
+
+  .mid-widgets-btns {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mini-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--sky);
+    box-shadow: 4px 8px 20px rgba(0,0,0,0.3);
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .mini-btn:active { transform: scale(0.94); }
+  .mini-btn.playing {
+    background: var(--mustard);
+    animation: radioPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes radioPulse {
+    0%, 100% { box-shadow: 4px 8px 20px rgba(0,0,0,0.3), 0 0 0 0 rgba(232,181,77,0.5); }
+    50% { box-shadow: 4px 8px 20px rgba(0,0,0,0.3), 0 0 0 12px rgba(232,181,77,0); }
+  }
+  .mini-btn .ic { font-size: 29px; line-height: 1; }
+  .mini-btn.cam-btn { background: #B7D3C2; }
+  .mini-btn.cam-btn.abriendo { background: var(--mustard); }
+  .mini-btn .lbl {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .mini-btn.train-verde { background: #A9D3A0; }
+  .mini-btn.train-amarillo { background: var(--mustard); }
+  .mini-btn.train-rojo { background: #E3A794; }
+  .mini-btn.train-gris { background: #D8D3C4; }
+
+  .train-bar-row { display: flex; justify-content: center; }
+  .train-bar {
+    width: auto;
+    min-width: 40%;
+    max-width: 75%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(241,236,221,0.92);
+    border-radius: 40px;
+    padding: 14px 32px;
+    cursor: pointer;
+    box-shadow: 3px 6px 14px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease;
+  }
+  .train-bar:active { transform: scale(0.98); }
+  .train-bar .ic { font-size: 34px; flex-shrink: 0; }
+  .train-bar-title {
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  .train-bar-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .train-bar-dot.train-verde { background: #4CAF50; }
+  .train-bar-dot.train-amarillo { background: #E8B54D; }
+  .train-bar-dot.train-rojo { background: #C2694B; }
+  .train-bar-dot.train-gris { background: #A8A296; }
+  .train-bar-status {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+
+  #secondaryBar {
+    transition: opacity 0.5s ease;
+    justify-content: center;
+  }
+  #secondaryBar .secondary-text {
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  /* día especial: la barra se viste de fiesta */
+  #secondaryBar.is-greeting {
+    background: linear-gradient(135deg, #F5D98B, #E8B54D);
+    border: 3px solid rgba(255,255,255,0.5);
+    box-shadow: 3px 6px 20px rgba(232,181,77,0.35);
+  }
+  #secondaryBar .greeting-text {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    font-weight: 700;
+    color: #4a3410;
+    text-align: center;
+  }
+
+  .weather-note {
+    background: #17221D;
+    width: 44%;
+    padding: 22px 26px 18px;
+    transform: rotate(-1.3deg);
+    color: var(--cream);
+  }
+
+  .weather-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .weather-icon-big { font-size: 54px; line-height: 1; }
+  .weather-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 56px;
+    line-height: 1;
+    color: #FFFFFF;
+  }
+  .weather-cond {
+    font-size: 19px;
+    color: var(--cream-dim);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  #rainTag {
+    color: #7EC8E3;
+    font-weight: 700;
+  }
+  .weather-feels {
+    margin-left: auto;
+    text-align: right;
+    font-size: 17px;
+    color: var(--cream-dim);
+    line-height: 1.3;
+  }
+  .weather-feels b { color: #FFFFFF; font-size: 23px; }
+
+  .clock-note {
+    background: #17221D;
+    width: 34%;
+    padding: 18px 28px 20px;
+    transform: rotate(1.4deg);
+    text-align: center;
+    color: var(--cream);
+  }
+
+  .weekday {
+    font-family: 'Kalam', cursive;
+    font-size: 27px;
+    color: var(--mustard);
+  }
+  .fulldate {
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    margin-top: 2px;
+    font-weight: 600;
+  }
+  .clock {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 1;
+    margin-top: 5px;
+    letter-spacing: -0.01em;
+    color: #FFFFFF;
+  }
+  .clock span { color: var(--mustard); }
+
+  .phrase-line {
+    margin-top: 9px;
+    font-family: 'Kalam', cursive;
+    font-size: 17px;
+    color: var(--cream-dim);
+    line-height: 1.2;
+  }
+
+  .news-ribbon {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1.4px) 0 0/6px 6px,
+      #0a0a0a;
+    padding: 16px 0;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.4);
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    border-top: 3px solid #1a1a1a;
+    border-bottom: 3px solid #1a1a1a;
+    margin: 0 -38px; /* rompe el padding del panel para llegar de punta a punta */
+    width: calc(100% + 76px);
+  }
+  .news-tag {
+    font-family: 'VT323', monospace;
+    font-size: 30px;
+    font-weight: 400;
+    color: #FFB300;
+    text-shadow: 0 0 6px rgba(255,179,0,0.6);
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-left: 24px;
+  }
+  .news-text {
+    font-family: 'VT323', monospace;
+    font-size: 30px;
+    font-weight: 400;
+    color: #FFB300;
+    text-shadow: 0 0 6px rgba(255,179,0,0.6);
+    white-space: nowrap;
+    display: inline-block;
+    animation: ledScroll 48s linear infinite;
+  }
+  @keyframes ledScroll {
+    0% { transform: translateX(100vw); }
+    100% { transform: translateX(-100%); }
+  }
+  .ticker-badge {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 10px;
+    filter: drop-shadow(0 0 3px rgba(255,179,0,0.4));
+  }
+
+  .radio-station-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(43,34,16,0.06);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .radio-station-btn.playing {
+    background: var(--mustard);
+  }
+  .radio-stop-btn {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+
+  .pending-label-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin: 10px 0 2px;
+  }
+  .pending-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    font-weight: 700;
+    color: #E8C978;
+    background: linear-gradient(135deg, #2E3D33, #1a241c);
+    padding: 14px 40px;
+    border-radius: 40px;
+    border: 2px solid rgba(232,181,77,0.45);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(232,181,77,0.12);
+    letter-spacing: 0.02em;
+    transform: rotate(-0.6deg);
+  }
+  .pending-label::before,
+  .pending-label::after {
+    content: '✦';
+    color: rgba(232,181,77,0.5);
+    font-size: 15px;
+  }
+
+  .notes-row {
+    flex: 1;
+    min-height: 0; /* clave: permite que la fila se achique en vez de desbordar */
+    display: flex;
+    gap: 22px;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+    /* aire arriba para que los cartelitos "HOY" / "VENCE HOY" no se corten */
+    padding: 18px 6px 6px;
+  }
+  .notes-row::-webkit-scrollbar { display: none; }
+
+  .note {
+    background: var(--mustard);
+    color: var(--ink);
+    /* flex-basis 0: las cinco se reparten el ancho por igual y nunca se salen de la pantalla */
+    flex: 1 1 0;
+    max-width: 420px;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    position: relative;
+    padding: 22px 20px 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    border-radius: 10px;
+    box-shadow: 6px 12px 26px rgba(0,0,0,0.32);
+    display: flex;
+    flex-direction: column;
+    background-image: linear-gradient(170deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 45%);
+  }
+  .note:active { transform: scale(0.97) rotate(0deg) !important; }
+
+  /* cinta de papel arriba de cada tarjeta */
+  .note-tape {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 64px;
+    height: 20px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: rgba(241,236,221,0.6);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    z-index: 2;
+  }
+
+  /* cabecera igual en las cinco: ícono + categoría */
+  .note-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .note-head .note-ic { font-size: 22px; letter-spacing: 0; }
+  .note-head .note-more { margin-left: auto; font-size: 22px; opacity: 0.6; }
+
+  .note-body { flex: 1; min-height: 0; margin-top: 8px; overflow: hidden; }
+
+  .note-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .note-title {
+    font-family: 'Kalam', cursive;
+    font-size: 32px;
+    font-weight: 700;
+    margin-top: 4px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .note-who {
+    font-size: 18px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+  .note-foot {
+    margin-top: 8px;
+    padding-top: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    border-top: 2px dashed rgba(43,34,16,0.16);
+    font-size: 17px;
+    color: var(--ink-dim);
+    line-height: 1.3;
+  }
+  .note-foot b { color: var(--ink); font-weight: 700; }
+
+  /* chip de persona: punto de color + nombre */
+  .who-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pc, var(--p-otro));
+    background: rgba(255,255,255,0.55);
+    border-radius: 20px;
+    padding: 4px 12px 4px 9px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .who-chip::before {
+    content: '';
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--pc, var(--p-otro));
+    flex-shrink: 0;
+  }
+  .who-chip.plain { color: var(--ink); background: rgba(255,255,255,0.6); }
+  .who-chip.plain::before { display: none; }
+
+  /* tarjeta vacía: tranquila, sin mayúsculas que griten */
+  .note.is-empty .note-title {
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--ink-dim);
+  }
+  .note.is-empty { box-shadow: 4px 8px 18px rgba(0,0,0,0.25); }
+
+  .discount-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 54px;
+    line-height: 1;
+    margin-top: 4px;
+    color: #2E6B3E;
+  }
+  .discount-store {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    margin-top: 6px;
+  }
+
+  .note-bignum {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1;
+    margin-top: 0;
+    color: var(--ink);
+  }
+  .note-bignum-label {
+    font-family: 'Kalam', cursive;
+    font-size: 24px;
+    line-height: 1.1;
+    margin-top: 0;
+  }
+
+  .note.has-today {
+    box-shadow: 6px 12px 26px rgba(0,0,0,0.32), 0 0 0 4px var(--brick);
+  }
+
+  .note.grouped {
+    position: relative;
+  }
+  .note.grouped::before,
+  .note.grouped::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    border-radius: inherit;
+    z-index: -1;
+  }
+  .note.grouped::before { transform: rotate(-4deg) translate(-6px, 5px); opacity: 0.75; }
+  .note.grouped::after { transform: rotate(4.5deg) translate(7px, -4px); opacity: 0.55; }
+
+  .note-count-badge {
+    position: absolute;
+    top: -16px;
+    right: -16px;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .note-today-badge {
+    position: absolute;
+    top: -12px;
+    left: -10px;
+    background: var(--brick);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 14px;
+    border-radius: 20px;
+    z-index: 3;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .note-next-badge {
+    position: absolute;
+    top: -12px;
+    left: -10px;
+    background: #3D6B8C;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 14px;
+    border-radius: 20px;
+    z-index: 3;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+  .group-item-postit.is-next {
+    box-shadow: 0 22px 60px rgba(0,0,0,0.5), 0 0 0 3px rgba(61,107,140,0.45);
+  }
+  .group-item-postit.is-done { opacity: 0.62; }
+
+  .full-postit.group-item-postit {
+    width: 340px;
+    max-width: 340px;
+    padding: 36px 32px 34px;
+    text-align: center;
+  }
+  .group-item-postit .group-item-icon {
+    font-size: 46px;
+    line-height: 1;
+  }
+  .group-item-postit .detail-title {
+    font-size: 36px;
+    margin-top: 14px;
+    line-height: 1.2;
+  }
+  .group-item-postit .detail-time {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 12px;
+    text-align: center;
+  }
+  .group-item-postit .detail-who {
+    font-size: 18px;
+    margin-top: 12px;
+    opacity: 0.7;
+  }
+
+  /* cuando hay 5-6 ítems, todo se achica un escalón para que entren sin scroll */
+  .full-postit.group-item-postit.size-md {
+    padding: 26px 22px 24px;
+  }
+  .group-item-postit.size-md .group-item-icon { font-size: 34px; }
+  .group-item-postit.size-md .detail-title { font-size: 29px; margin-top: 10px; }
+  .group-item-postit.size-md .detail-time { font-size: 20px; margin-top: 6px; }
+  .group-item-postit.size-md .detail-who { font-size: 14px; margin-top: 10px; }
+
+  /* 7 o más, un escalón más chico todavía */
+  .full-postit.group-item-postit.size-sm {
+    padding: 18px 16px 16px;
+  }
+  .group-item-postit.size-sm .group-item-icon { font-size: 26px; }
+  .group-item-postit.size-sm .detail-title { font-size: 21px; margin-top: 8px; }
+  .group-item-postit.size-sm .detail-time { font-size: 13px; margin-top: 6px; }
+  .group-item-postit.size-sm .detail-who { font-size: 11px; margin-top: 6px; }
+
+  /* ---- pantalla de una pila: título arriba ---- */
+  .group-head {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: -40px 0 18px;
+    font-family: 'Kalam', cursive;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--cream);
+  }
+  .group-head-ic { font-size: 40px; }
+  .group-head-count {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    background: var(--cat-bg, var(--cream));
+    border-radius: 20px;
+    padding: 6px 16px;
+  }
+
+  /* hojita de almanaque (día de la semana + número) */
+  .leaf {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    width: 82px;
+    background: #FFFDF6;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+  }
+  .leaf-wd {
+    width: 100%;
+    background: var(--brick);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 0;
+  }
+  .leaf-dd {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.15;
+    padding: 2px 0 4px;
+  }
+  .group-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px;
+    font-weight: 700;
+    color: #2E6B3E;
+    line-height: 1;
+  }
+  .group-desc {
+    font-size: 17px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+  .group-item-postit .detail-who .who-chip { font-size: 18px; }
+  .group-item-postit.size-md .leaf { width: 70px; }
+  .group-item-postit.size-md .leaf-dd { font-size: 30px; }
+  .group-item-postit.size-md .group-pct { font-size: 50px; }
+  .group-item-postit.size-sm .leaf { width: 58px; }
+  .group-item-postit.size-sm .leaf-wd { font-size: 12px; }
+  .group-item-postit.size-sm .leaf-dd { font-size: 24px; }
+  .group-item-postit.size-sm .group-pct { font-size: 38px; }
+  .group-item-postit.size-sm .detail-who .who-chip { font-size: 14px; }
+
+  /* ---- tarjeta suelta en grande: centrada y del color de su categoría ---- */
+  /* centrado vertical "seguro": si algún día no entra, scrollea en vez de cortarse arriba */
+  #groupDetailRow, #weekCard, #datesCard { margin-top: auto; margin-bottom: auto; }
+  #singleDetailCard {
+    max-width: 760px;
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+    padding: 56px 56px 60px;
+    background-image: linear-gradient(170deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 50%);
+  }
+  #singleDetailCard .detail-cat { font-size: 20px; padding: 9px 22px; }
+  #singleDetailCard .detail-time {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 24px;
+  }
+  #singleDetailCard .detail-title { font-size: 66px; margin-top: 8px; }
+  #singleDetailCard .detail-who { margin-top: 26px; }
+  #singleDetailCard .detail-who .who-chip { font-size: 22px; padding: 7px 18px 7px 14px; }
+  #singleDetailCard .detail-who .who-chip::before { width: 13px; height: 13px; }
+  .detail-icon { font-size: 64px; line-height: 1; margin-bottom: 18px; }
+  .detail-icon:empty { display: none; }
+
+  .today-highlight {
+    color: var(--brick);
+    font-weight: 700;
+  }
+
+  .overlay-full {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 0%, var(--board-2), var(--board) 65%),
+      repeating-linear-gradient(90deg, transparent 0 34px, var(--line) 34px 35px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 90px 24px 50px;
+  }
+
+  /* fondo de cancha de fútbol para el desplegable de partidos */
+  #sportsOverlay {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #2E7D32 0px, #2E7D32 90px,
+        #348A38 90px, #348A38 180px
+      );
+    align-items: center;
+  }
+  #sportsOverlay::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 340px;
+    height: 340px;
+    border: 4px solid rgba(255,255,255,0.35);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  #sportsOverlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 4px;
+    height: 100%;
+    background: rgba(255,255,255,0.35);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .overlay-full.show { opacity: 1; pointer-events: auto; }
+  .overlay-full::-webkit-scrollbar { width: 6px; }
+  .overlay-full::-webkit-scrollbar-thumb { background: rgba(241,236,221,0.25); border-radius: 3px; }
+
+  .overlay-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    cursor: pointer;
+    z-index: 60;
+    border: 3px solid rgba(255,255,255,0.15);
+    transition: transform 0.15s ease;
+  }
+  .overlay-close:active { transform: scale(0.92); }
+
+  .sports-refresh {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 60;
+    transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  }
+  .sports-refresh:active { transform: scale(0.9); background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.7); }
+  .sports-refresh.spinning { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .full-postit {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--cream);
+    border-radius: 24px;
+    padding: 64px 64px 70px;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.5);
+    position: relative;
+    color: var(--ink);
+  }
+  .full-postit::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 76px;
+    height: 26px;
+    background: rgba(232,181,77,0.6);
+  }
+
+  .detail-cat {
+    display: inline-block;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    border-radius: 34px;
+    background: rgba(43,34,16,0.08);
+  }
+  .detail-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    margin-top: 22px;
+  }
+  .detail-time.hidden { display: none; }
+  .detail-title {
+    font-family: 'Kalam', cursive;
+    font-size: 62px;
+    margin-top: 14px;
+    line-height: 1.15;
+  }
+  .detail-desc {
+    font-size: 25px;
+    color: var(--ink-dim);
+    line-height: 1.7;
+    margin-top: 18px;
+    white-space: pre-line;
+  }
+  .detail-desc > div { margin-bottom: 14px; }
+
+  .desc-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+    background: rgba(43,34,16,0.05);
+    border-radius: 18px;
+    padding: 26px 28px;
+    margin-bottom: 16px;
+  }
+  .desc-row-today {
+    background: rgba(194,105,75,0.12);
+    border: 2px solid rgba(194,105,75,0.35);
+  }
+  .desc-row-icon { font-size: 44px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .desc-row-text { flex: 1; }
+  .desc-row-title {
+    font-family: 'Kalam', cursive;
+    font-size: 34px;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .desc-row-tag {
+    display: inline-block;
+    background: var(--brick);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 4px 13px;
+    border-radius: 16px;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .desc-row-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 23px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  .detail-who {
+    margin-top: 30px;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .weather-minmax {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 2px dashed rgba(241,236,221,0.2);
+    font-size: 18px;
+    color: var(--cream-dim);
+    text-align: center;
+  }
+  .weather-minmax b { color: #FFFFFF; font-weight: 700; }
+
+  .wf-header { display: flex; align-items: center; gap: 20px; }
+  .wf-icon { font-size: 92px; line-height: 1; }
+  .wf-temp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 80px;
+    line-height: 1;
+  }
+  .wf-cond { font-size: 26px; color: var(--ink-dim); margin-top: 6px; }
+  .wf-meta {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    font-size: 24px;
+    color: var(--ink-dim);
+    display: flex;
+    gap: 36px;
+  }
+  .wf-meta b { color: var(--ink); font-size: 28px; }
+  .wf-sun {
+    margin-top: 18px;
+    font-size: 22px;
+    color: var(--ink-dim);
+  }
+  .wf-advisory {
+    margin-top: 14px;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--brick);
+    background: rgba(194,105,75,0.12);
+    border-radius: 12px;
+    padding: 14px 20px;
+  }
+
+  .wf-forecast-title {
+    font-family: 'Kalam', cursive;
+    font-size: 30px;
+    margin-top: 40px;
+    margin-bottom: 18px;
+  }
+  .wf-forecast { display: flex; gap: 18px; flex-wrap: wrap; }
+  .wf-day-card {
+    flex: 1;
+    min-width: 170px;
+    background: rgba(43,34,16,0.05);
+    border-radius: 16px;
+    padding: 22px 12px;
+    text-align: center;
+  }
+  .wf-day-card .d {
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--ink-dim);
+  }
+  .wf-day-card .i { font-size: 44px; margin: 12px 0; }
+  .wf-day-card.is-today { background: rgba(232,181,77,0.22); box-shadow: inset 0 0 0 2px rgba(232,181,77,0.6); }
+  .wf-txt { font-size: 15px; color: var(--ink-dim); min-height: 20px; margin-top: -4px; }
+  .wf-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+  }
+  .wf-range .lo { color: #4F7FA8; min-width: 34px; text-align: right; }
+  .wf-range .hi { color: #C2694B; min-width: 34px; text-align: left; }
+  .wf-bar {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(43,34,16,0.1);
+  }
+  .wf-bar span {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #6FA8D6, #E8B54D, #C2694B);
+  }
+
+  .full-postit-row {
+    width: 100%;
+    max-width: 1700px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+  }
+  .sports-postit {
+    flex: 1;
+    min-width: 380px;
+    max-width: 540px;
+  }
+  .sports-postit:nth-child(1) { transform: rotate(-1deg); }
+  .sports-postit:nth-child(2) { transform: rotate(0.8deg); }
+  .sports-postit:nth-child(3) { transform: rotate(-0.6deg); }
+
+  /* cuando hay 3 (fútbol x2 + F1), se achican un escalón y quedan con aire a los costados */
+  #sportsRow { align-items: center; }
+  .full-postit-row.count-3 { max-width: 1200px; gap: 26px; flex-wrap: nowrap; }
+  .full-postit-row.count-3 .sports-postit {
+    min-width: 0;
+    max-width: 384px;
+    padding: 42px 28px 40px;
+  }
+  .full-postit-row.count-3 .sports-league { font-size: 16px; }
+  .full-postit-row.count-3 .sports-matchup { font-size: 28px; margin-top: 18px; }
+  .full-postit-row.count-3 .sports-badge { width: 78px; height: 78px; }
+  .full-postit-row.count-3 .sports-datetime { font-size: 24px; }
+  .full-postit-row.count-3 .f1-session-row { font-size: 16px; padding: 9px 14px; }
+
+  .sports-league {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .sports-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 24px;
+  }
+  .sports-badge {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+  }
+  .sports-vs {
+    font-family: 'Kalam', cursive;
+    font-size: 26px;
+    color: var(--ink-dim);
+  }
+  .sports-matchup {
+    font-family: 'Kalam', cursive;
+    font-size: 36px;
+    text-align: center;
+    margin-top: 24px;
+    line-height: 1.25;
+  }
+  .sports-datetime {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 18px;
+    color: var(--ink);
+  }
+  .sports-venue {
+    font-size: 21px;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-top: 15px;
+  }
+  .sports-lastresult {
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--ink);
+  }
+
+  .f1-sessions {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .f1-session-row {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(43,34,16,0.05);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .sports-countdown {
+    font-family: 'Kalam', cursive;
+    font-size: 20px;
+    text-align: center;
+    margin-top: 8px;
+    color: var(--brick);
+    font-weight: 700;
+  }
+
+  .sports-countdown.is-imminent {
+    background: var(--brick);
+    color: #fff;
+    border-radius: 20px;
+    padding: 8px 18px;
+    display: inline-block;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .sports-scoreline {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 2px dashed rgba(43,34,16,0.18);
+    text-align: center;
+  }
+  .scoreline-label {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .scoreline-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .scoreline-badge { width: 42px; height: 42px; object-fit: contain; }
+  .scoreline-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .scoreline-dash { font-size: 26px; color: var(--ink-dim); }
+  .scoreline-rival {
+    font-size: 17px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  /* F1 con identidad propia: asfalto/carbono oscuro con rojo, para que no parezca fútbol */
+  .f1-postit {
+    position: relative;
+    overflow: hidden;
+    padding-top: 74px !important;
+    color: #F1ECDD;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 6px, transparent 6px 12px),
+      linear-gradient(160deg, #2a2b30, #15161a) !important;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .f1-postit::before { display: none; }
+  .f1-postit .sports-league { color: #FF3B30; letter-spacing: 0.12em; }
+  .f1-postit .sports-matchup { color: #fff; }
+  .f1-postit .sports-countdown { color: #FF6B5E; }
+  .f1-postit .f1-session-row { background: rgba(255,255,255,0.07); color: #F1ECDD; }
+  .f1-postit .f1-session-row.is-next {
+    background: rgba(225,6,0,0.22);
+    border-left: 4px solid #E10600;
+    color: #fff;
+  }
+  .f1-postit .f1-session-row.is-past { opacity: 0.38; }
+  .f1-postit .sports-venue { color: rgba(241,236,221,0.75); }
+  .f1-venue-city { display: block; font-size: 17px; opacity: 0.75; margin-top: 3px; }
+  .f1-checkered {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 34px;
+    background:
+      repeating-conic-gradient(#1a1a1a 0% 25%, #f5f5f5 0% 50%) 0 0/34px 34px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .f1-session-row.is-next {
+    background: rgba(194,105,75,0.16);
+    border-left: 4px solid var(--brick);
+    font-weight: 700;
+  }
+  .f1-session-row.is-past { opacity: 0.42; }
+
+  #datesCard { max-width: 1200px; padding: 44px 46px 46px; }
+  .dates-layout { display: flex; gap: 34px; margin-top: 22px; align-items: flex-start; }
+  .cal-grid {
+    flex: 0 0 560px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    padding-bottom: 4px;
+  }
+  .cal-cell {
+    position: relative;
+    height: 68px;
+    border-radius: 10px;
+    background: rgba(43,34,16,0.05);
+    padding: 6px 8px;
+  }
+  .cal-cell.is-blank { background: transparent; }
+  .cal-cell.is-past { opacity: 0.45; }
+  .cal-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .cal-emoji {
+    position: absolute;
+    right: 6px;
+    bottom: 4px;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .cal-cell.has-date { background: #FFF6E2; }
+  .cal-cell.is-featured { background: linear-gradient(135deg, #F5D98B, #E8B54D); }
+  .cal-cell.is-feriado { background: linear-gradient(180deg, #CFE6F7, #fff 50%, #CFE6F7); }
+  .cal-cell.is-today { box-shadow: inset 0 0 0 3px var(--brick); opacity: 1; }
+  .cal-cell.is-today .cal-num { color: var(--brick); }
+
+  .dates-side { flex: 1; min-width: 0; }
+  .dates-next {
+    background: rgba(232,181,77,0.18);
+    border: 2px solid rgba(232,181,77,0.5);
+    border-radius: 16px;
+    padding: 20px 24px;
+    text-align: center;
+  }
+  .dates-next-label {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .dates-next-text {
+    font-family: 'Kalam', cursive;
+    font-size: 32px;
+    margin-top: 6px;
+    line-height: 1.2;
+  }
+  .dates-next-when {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brick);
+    margin-top: 6px;
+  }
+
+  .dates-list { margin-top: 18px; }
+  .dates-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    margin-bottom: 7px;
+    background: rgba(43,34,16,0.04);
+  }
+  .dates-row-date {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    min-width: 34px;
+    text-align: right;
+  }
+  .dates-row-text {
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .dates-row.is-past { opacity: 0.38; }
+  .dates-row.is-today {
+    background: rgba(194,105,75,0.16);
+    border-left: 5px solid var(--brick);
+  }
+  .dates-row.is-featured .dates-row-text { font-weight: 700; }
+
+  /* tren con problemas: la barra avisa sin necesidad de leer */
+  #secondaryBar.is-alert {
+    background: #E8C4B8;
+    border: 3px solid var(--brick);
+    box-shadow: 3px 6px 20px rgba(194,105,75,0.4);
+  }
+  #secondaryBar.is-warning {
+    background: #F2E0B5;
+    border: 3px solid #C9A227;
+  }
+
+  .week-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 54px;
+    padding: 0 22px 0 18px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #2E3D33, #1a241c);
+    border: 2px solid rgba(232,181,77,0.45);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    color: #E8C978;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .week-btn span { font-size: 24px; }
+
+  /* sello del medio cuando ya muestra lo de mañana (después de las 21) */
+  .pending-label.is-tomorrow {
+    color: #CFE0F2;
+    border-color: rgba(143,178,214,0.55);
+    background: linear-gradient(135deg, #24324A, #141c2a);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(143,178,214,0.12);
+  }
+  .pending-label.is-tomorrow::before,
+  .pending-label.is-tomorrow::after { color: rgba(207,224,242,0.5); }
+  .week-btn:active { transform: scale(0.92); background: rgba(232,181,77,0.25); }
+
+  #weekCard { max-width: 1600px; padding: 44px 44px 40px; }
+  .week-head { display: flex; align-items: center; gap: 20px; }
+  .week-range {
+    font-family: 'Kalam', cursive;
+    font-size: 28px;
+    color: var(--ink-dim);
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 22px;
+    min-height: calc(100vh - 330px);
+  }
+  .week-day {
+    background: rgba(43,34,16,0.05);
+    border-radius: 14px;
+    padding: 12px 9px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .week-day.is-past { opacity: 0.5; }
+  .week-day.is-today {
+    background: rgba(194,105,75,0.12);
+    box-shadow: inset 0 0 0 3px var(--brick);
+  }
+  .week-day-head {
+    text-align: center;
+    border-bottom: 2px dashed rgba(43,34,16,0.15);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .week-day.is-today .week-day-name { color: var(--brick); }
+  .week-day-name {
+    display: block;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-dim);
+    font-weight: 700;
+  }
+  .week-day-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .week-day-items { display: flex; flex-direction: column; gap: 7px; }
+  .wk-chip {
+    position: relative;
+    border-radius: 9px;
+    padding: 7px 9px;
+    font-size: 15px;
+    line-height: 1.25;
+    color: var(--ink);
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    overflow-wrap: anywhere;
+  }
+  .wk-hora {
+    display: block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-dim);
+  }
+  .wk-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+  .wk-activity { background: var(--sky); }
+  .wk-health { background: var(--lilac); }
+  .wk-school { background: var(--teal); }
+  .wk-school.is-done { opacity: 0.6; }
+  .wk-reminder { background: #F2D58E; }
+  .wk-discount { background: var(--sage); }
+  .wk-g1 { background: linear-gradient(135deg, #F5D98B, #E8B54D); font-weight: 700; }
+  .wk-g2 { background: #FFF6E2; border-left: 4px solid var(--brick); }
+  .wk-feriado { background: linear-gradient(180deg, #CFE6F7, #fff 50%, #CFE6F7); }
+  .week-empty {
+    text-align: center;
+    color: var(--ink-dim);
+    opacity: 0.4;
+    font-size: 26px;
+  }
+
+  .mid-zone {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .mid-zone-center { flex: 1; min-width: 0; }
+
+  .efemeride-postit {
+    position: relative;
+    width: 250px;
+    min-height: 140px;
+    flex-shrink: 0;
+    background: #EFE5CC;
+    background-image: linear-gradient(170deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 50%);
+    border-radius: 4px;
+    padding: 28px 18px 18px;
+    box-shadow: 3px 7px 18px rgba(0,0,0,0.38);
+    transform: rotate(-1.6deg);
+    text-align: center;
+    display: none; /* solo aparece si hay efeméride ese día */
+    flex-direction: column;
+    justify-content: center;
+  }
+  .efemeride-postit.show { display: flex; }
+  .efemeride-right { transform: rotate(1.6deg); }
+
+  .efemeride-tack {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #E36B5A, #A83A2C);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.45);
+  }
+  .efemeride-label {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(43,34,16,0.55);
+    font-weight: 700;
+  }
+  .efemeride-text {
+    font-family: 'Kalam', cursive;
+    font-size: 22px;
+    color: var(--ink);
+    line-height: 1.22;
+    margin-top: 8px;
+  }
+
+  .efemeride-tack.tack-blue {
+    background: radial-gradient(circle at 35% 30%, #6FA8D6, #2E5F87);
+  }
+  .proxima-cuando {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--brick);
+    margin-top: 8px;
+  }
+
+  .tv-window {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,11,0.88);
+    z-index: 40;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .tv-window.show { display: flex; }
+  .tv-frame {
+    width: min(86vw, 980px);
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+    border: 8px solid var(--mustard);
+    background: #000;
+  }
+  .tv-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .tv-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 60;
+  }
+
+  /* ---- día de fiesta ---- */
+  .fiesta-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .fiesta-p {
+    position: absolute;
+    top: -40px;
+    opacity: 0.85;
+    animation-name: fiestaCae;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    will-change: transform;
+  }
+  .fiesta-p.confeti { width: 9px; height: 15px; border-radius: 2px; opacity: 0.9; }
+  .fiesta-p.nieve { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.6); opacity: 0.75; }
+  @keyframes fiestaCae {
+    0%   { transform: translateY(0) translateX(0) rotate(0deg); }
+    50%  { transform: translateY(440px) translateX(18px) rotate(200deg); }
+    100% { transform: translateY(880px) translateX(-6px) rotate(380deg); }
+  }
+
+  /* barra dorada del grupo 1: más grande y con un brillo que la recorre */
+  #secondaryBar.is-greeting {
+    background: linear-gradient(110deg, #E8B54D 0%, #F5D98B 40%, #FFF3C9 50%, #F5D98B 60%, #E8B54D 100%);
+    background-size: 250% 100%;
+    animation: brilloFiesta 5s ease-in-out infinite;
+    border: 3px solid rgba(255,255,255,0.65);
+    box-shadow: 0 0 0 4px rgba(232,181,77,0.25), 3px 8px 26px rgba(232,181,77,0.5);
+    padding: 16px 38px;
+  }
+  #secondaryBar.is-greeting .greeting-text { font-size: 30px; }
+  #secondaryBar.is-greeting, #secondaryBar.is-greeting-2, #secondaryBar.is-feriado { max-width: 100%; }
+  #secondaryBar.texto-largo .greeting-text { font-size: 23px; white-space: nowrap; }
+  #secondaryBar.texto-largo { padding-left: 26px; padding-right: 26px; }
+  @keyframes brilloFiesta {
+    0%, 100% { background-position: 100% 0; }
+    50% { background-position: 0% 0; }
+  }
+
+  /* grupo 2 (cumples de otros, días varios): tarjetita crema con cinta */
+  #secondaryBar.is-greeting-2 {
+    position: relative;
+    background: #FFF6E2;
+    border: 2px solid rgba(194,105,75,0.35);
+    overflow: hidden;
+  }
+  #secondaryBar.is-greeting-2::before {
+    content: '';
+    position: absolute;
+    left: 26px; top: 0; bottom: 0;
+    width: 14px;
+    background: var(--brick);
+    opacity: 0.85;
+  }
+  #secondaryBar.is-greeting-2 .greeting-text { color: var(--ink); padding-left: 22px; }
+
+  /* feriado: celeste y blanco con solcito */
+  #secondaryBar.is-feriado {
+    background: linear-gradient(180deg, #A9D3F2 0%, #A9D3F2 28%, #FFFFFF 28%, #FFFFFF 72%, #A9D3F2 72%);
+    border: 2px solid rgba(79,127,168,0.35);
+  }
+  #secondaryBar.is-feriado .greeting-text { color: #1F3B57; }
+  .feriado-sol { font-size: 28px; }
+
+  /* post-it de la derecha en día de fiesta: tarjeta de saludo dorada con moño */
+  .efemeride-postit.is-fiesta {
+    background: linear-gradient(150deg, #FBE7A9, #E8B54D);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.35), 3px 8px 22px rgba(232,181,77,0.45);
+  }
+  .efemeride-postit.is-fiesta .efemeride-tack {
+    width: 26px; height: 26px; top: -12px;
+    background: radial-gradient(circle at 35% 30%, #E36B5A, #A83A2C);
+  }
+  .efemeride-postit.is-fiesta .efemeride-label { color: #6b4a12; }
+  .efemeride-postit.is-fiesta .efemeride-text { font-size: 24px; font-weight: 700; color: #3d2a08; }
+  .fiesta-edad {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #8a3b22;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="night-clock" id="nightClock">
+  <div class="night-clock-content" id="nightClockContent">
+    <div class="night-clock-date" id="nightClockDate">-- de --</div>
+    <div class="night-clock-time" id="nightClockTime">--:--</div>
+    <div class="night-clock-temp" id="nightClockTemp">--°</div>
+    <div class="night-clock-fiesta" id="nightClockFiesta"></div>
+  </div>
+</div>
+
+<div class="device" id="device">
+
+  <div class="fiesta-layer" id="fiestaLayer" aria-hidden="true"></div>
+
+  <div class="top-row">
+    <div class="weather-note postit" id="weatherNoteBtn" style="cursor: pointer;">
+      <div class="weather-top">
+        <div class="weather-icon-big" id="w-icon-now">⛅</div>
+        <div>
+          <div class="weather-temp" id="w-temp-now">--°</div>
+          <div class="weather-cond"><span id="w-cond-now">Cargando...</span> <span id="rainTag"></span></div>
+        </div>
+        <div class="weather-feels">
+          Sensación<br><b id="w-feels">--°</b>
+        </div>
+      </div>
+
+      <div class="weather-minmax">
+        Máx <b id="w-max-today">--°</b> · Mín <b id="w-min-today">--°</b>
+      </div>
+    </div>
+
+    <div class="mid-widgets">
+      <div class="mid-widgets-label">🏠 Centro de acceso</div>
+      <div class="mid-widgets-btns">
+        <div class="mini-btn" id="radioNoteBtn">
+          <div class="ic" id="radioMiniIcon">📻</div>
+          <div class="lbl">MEGA</div>
+        </div>
+
+        <div class="mini-btn" id="tvMini">
+          <div class="ic">📺</div>
+          <div class="lbl">TN</div>
+        </div>
+
+        <div class="mini-btn cam-btn" id="camBtn">
+          <div class="ic">📷</div>
+          <div class="lbl">CÁMARAS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="clock-note postit">
+      <div class="weekday" id="weekday">jueves</div>
+      <div class="fulldate" id="fulldate">6 de agosto</div>
+      <div class="clock" id="clock">14<span>:32</span></div>
+    </div>
+  </div>
+
+  <div class="news-ribbon">
+    <span class="news-text" id="newsText">Cargando partidos...</span>
+  </div>
+
+  <div class="mid-zone">
+    <div class="efemeride-postit show" id="efemeridePostit">
+      <div class="efemeride-tack"></div>
+      <div class="efemeride-label" id="efemerideLabel">Efeméride de hoy</div>
+      <div class="efemeride-text" id="efemerideText"></div>
+    </div>
+
+    <div class="mid-zone-center">
+      <div class="train-bar-row">
+        <div class="train-bar" id="secondaryBar"></div>
+      </div>
+
+      <div class="pending-label-row">
+        <div class="pending-label" id="pendingLabel">🏠 CasaHub Loureiro-Sánchez</div>
+        <div class="week-btn" id="weekBtn" title="Ver la semana"><span>🗓️</span> Semana</div>
+      </div>
+    </div>
+
+    <div class="efemeride-postit efemeride-right show" id="efemerideRight">
+      <div class="efemeride-tack tack-blue"></div>
+      <div class="efemeride-label" id="proximaLabel">Lo que se viene</div>
+      <div class="efemeride-text" id="proximaFechaText">—</div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="weekOverlay">
+    <div class="overlay-close" id="weekClose">✕</div>
+    <div class="full-postit" id="weekCard"></div>
+  </div>
+
+  <div class="notes-row" id="notes">
+    <div class="note" id="pendingLoading" style="background: var(--cream);">
+      <div class="note-time">···</div>
+      <div class="note-title">Cargando</div>
+      <div class="note-who">CasaHub</div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="overlay">
+    <div class="overlay-close" id="d-close">✕</div>
+    <div class="full-postit" id="singleDetailCard">
+      <div class="detail-icon" id="d-icon"></div>
+      <div class="detail-cat" id="d-cat">Colegio</div>
+      <div class="detail-time" id="d-time">16:30</div>
+      <div class="detail-title" id="d-title">Buscar a Lorenzo</div>
+      <div class="detail-desc" id="d-desc">Descripción</div>
+      <div class="detail-who" id="d-who">Asignado a</div>
+    </div>
+    <div class="full-postit-row" id="groupDetailRow" style="display: none;"></div>
+  </div>
+
+  <div class="overlay-full" id="datesOverlay">
+    <div class="overlay-close" id="datesClose">✕</div>
+    <div class="full-postit" id="datesCard"></div>
+  </div>
+
+  <div class="overlay-full" id="weatherOverlay">
+    <div class="overlay-close" id="weatherClose">✕</div>
+    <div class="full-postit">
+      <div class="wf-header">
+        <div class="wf-icon" id="wf-icon">☀️</div>
+        <div>
+          <div class="wf-temp" id="wf-temp">--°</div>
+          <div class="wf-cond" id="wf-cond">Despejado</div>
+        </div>
+      </div>
+      <div class="wf-meta">
+        <div>Sensación <b id="wf-feels">--°</b></div>
+        <div>Máx <b id="wf-max">--°</b> · Mín <b id="wf-min">--°</b></div>
+      </div>
+      <div class="wf-sun" id="wf-sun"></div>
+      <div class="wf-advisory" id="wf-advisory"></div>
+      <div class="wf-forecast-title">📅 Próximos días</div>
+      <div class="wf-forecast" id="wf-forecast"></div>
+    </div>
+  </div>
+
+  <div class="overlay-full" id="sportsOverlay">
+    <div class="overlay-close" id="sportsClose">✕</div>
+    <div class="sports-refresh" id="sportsRefresh" title="Volver a intentar traer los datos">🔄</div>
+    <div class="full-postit-row" id="sportsRow"></div>
+  </div>
+
+  <audio id="radioAudio"></audio>
+
+  <div class="tv-window" id="tvWindow">
+    <div class="tv-close" id="tvClose">✕</div>
+    <div class="tv-frame">
+      <iframe id="tvIframe" src="" title="TN en vivo" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── helpers y tablas que se usan apenas arranca el panel ──
+  // (van al principio a propósito: si quedan más abajo, se usan antes de existir
+  //  y el panel se corta a la mitad)
+  function ddmm(date) {
+    return String(date.getDate()).padStart(2, '0') + '/' + String(date.getMonth() + 1).padStart(2, '0');
+  }
+
+  // ---- efemérides argentinas: tabla local, no depende de ninguna API ----
+  const efemerides = {
+    '19/01': 'Día del Trabajador Cervecero',
+    '25/01': 'Día Nacional del Reportero Gráfico',
+    '26/01': 'Día del Pescador',
+    '04/02': 'Día del Guardavidas',
+    '14/02': 'Día de los Enamorados',
+    '15/02': 'Día del Redactor Publicitario',
+    '24/02': 'Día del Mecánico Automotor',
+    '04/03': 'Día del Hermano',
+    '06/03': 'Día del Escultor',
+    '19/03': 'Día del Carpintero y del Artesano',
+    '01/04': 'Día Nacional del Donante Voluntario de Médula Ósea',
+    '03/04': 'Día del Personal de Casas Particulares',
+    '10/04': 'Día del Investigador Científico',
+    '26/04': 'Día del Librero',
+    '01/05': 'Día del Trabajador',
+    '07/05': 'Día del Taxista',
+    '28/05': 'Día de los Jardines de Infantes y de la Maestra Jardinera',
+    '02/06': 'Día del Bombero Voluntario',
+    '07/06': 'Día del Periodista',
+    '15/06': 'Día del Bioquímico',
+    '27/06': 'Día del Trabajador del Estado',
+    '03/07': 'Día del Locutor',
+    '20/07': 'Día del Amigo',
+    '11/08': 'Día del Nutricionista',
+    '24/08': 'Día del Lector',
+    '29/08': 'Día del Abogado',
+    '04/09': 'Día del Inmigrante',
+    '11/09': 'Día del Maestro',
+    '13/09': 'Día del Bibliotecario',
+    '17/09': 'Día del Profesor',
+    '21/09': 'Día del Estudiante y de la Sanidad',
+    '01/10': 'Día del Guardaparque Nacional',
+    '24/10': 'Día del Diseñador Gráfico',
+    '06/11': 'Día del Bancario',
+    '10/11': 'Día de la Tradición',
+    '22/11': 'Día del Gráfico y del Músico',
+    '03/12': 'Día del Médico',
+    '15/12': 'Día del Camionero',
+    '17/12': 'Día del Contador Público'
+  };
+
+  function efemerideDeHoy() {
+    return efemerides[ddmm(new Date())] || null;
+  }
+
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  const weekdays = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function tick(){
+    const now = new Date();
+    document.getElementById('weekday').textContent = weekdays[now.getDay()];
+    document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
+    document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
+    document.getElementById('nightClockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    const diaNoche = weekdays[now.getDay()];
+    document.getElementById('nightClockDate').textContent = diaNoche.charAt(0).toUpperCase() + diaNoche.slice(1) + ', ' + now.getDate() + ' de ' + months[now.getMonth()];
+  }
+  tick();
+  setInterval(tick, 1000 * 10);
+
+  // ---- frase del día: rota sola, una distinta por día ----
+  let fraseDelDiaActual = '';
+  let postItsListos = false;
+  const dailyPhrases = [
+    '"Un mate a tiempo es una tarde salvada."',
+    '"No hay lunes que no llegue ni plazo que no se cumpla."',
+    '"Vísteme despacio que estoy apurado."',
+    '"El que no arriesga, no cruza el Riachuelo."',
+    '"A caballo regalado no se le mira el diente, pero se le pone la vacuna."',
+    '"Más vale paso que dure y no trote que canse."',
+    '"Cada casa es un mundo, y la nuestra anda bastante bien."',
+    '"El mate compartido sabe distinto."',
+    '"No hay mal que dure cien años, ni casa que los aguante sin arreglos."',
+    '"Donde hay ganas, hay mate caliente."'
+  ];
+  function updateDailyPhrase() {
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    const phrase = dailyPhrases[dayOfYear % dailyPhrases.length];
+    fraseDelDiaActual = phrase;
+    // al arrancar, esto corre antes de que existan las tablas de fechas: el arranque
+    // de los post-its se hace al final del script, así que acá solo refrescamos si ya está listo
+    if (postItsListos) renderEfemeride();
+  }
+  updateDailyPhrase();
+  setInterval(updateDailyPhrase, 1000 * 60 * 60); // revisa cada hora, cambia al cruzar de día
+
+  const overlay = document.getElementById('overlay');
+  const singleDetailCard = document.getElementById('singleDetailCard');
+  const groupDetailRow = document.getElementById('groupDetailRow');
+
+  document.getElementById('notes').addEventListener('click', (e) => {
+    const note = e.target.closest('.note');
+    if(!note || note.id === 'radioNoteBtn') return;
+
+    if (note.dataset.entriesJson) {
+      // ---- modo agrupado: título arriba + un post-it por cada ítem, llenando la pantalla ----
+      const { type, entries } = JSON.parse(note.dataset.entriesJson);
+      const style = typeStyle[type];
+      const today = todayDDMM();
+      const n = entries.length;
+
+      // columnas según la cantidad, para que entren todos sin scrollear y bien parejos
+      const cols = n <= 3 ? n : n === 4 ? 2 : n <= 6 ? 3 : 4;
+      const filas = Math.ceil(n / cols);
+      const gapPx = filas >= 3 ? 20 : 30;
+      const sizeClass = filas >= 3 ? 'size-sm' : filas === 2 ? 'size-md' : '';
+      const anchoItem = Math.min(n <= 2 ? 440 : 400, Math.floor((window.innerWidth - 100 - (cols - 1) * gapPx) / cols));
+      groupDetailRow.style.gap = gapPx + 'px';
+      groupDetailRow.style.maxWidth = (cols * anchoItem + (cols - 1) * gapPx) + 'px';
+
+      // el badge "PRÓXIMO" va al primer ítem que todavía está PENDIENTE
+      const usaProximo = type === 'schoolTask' || type === 'healthAppointment';
+      const idxProximo = usaProximo ? entries.findIndex((e) => !e.done && !(e.time && e.time.includes(today))) : -1;
+      const nombreGrupo = { discount: 'Descuentos', activity: 'Actividades' }[type] || style.cat;
+
+      const plurales = { healthAppointment: 'turnos', schoolTask: 'tareas', discount: 'descuentos', activity: 'actividades', reminder: 'pagos' };
+      groupDetailRow.innerHTML = `
+        <div class="group-head" style="--cat-bg:${style.bg}">
+          <span class="group-head-ic">${style.icon}</span>
+          <span>${nombreGrupo}</span>
+          <span class="group-head-count">${n} ${plurales[type] || ''}</span>
+        </div>`;
+
+      entries.forEach((entry, i) => {
+        const esHoy = entry.time && entry.time.includes(today);
+        const esProximo = i === idxProximo;
+        const card = document.createElement('div');
+        card.className = `full-postit group-item-postit ${sizeClass}${esProximo ? ' is-next' : ''}${entry.done ? ' is-done' : ''}`;
+        card.style.background = style.bg; // color propio de la categoría
+        card.style.width = anchoItem + 'px';
+        card.style.maxWidth = anchoItem + 'px';
+        card.style.transform = `rotate(${rotations[i % rotations.length]})`;
+
+        // arriba de cada post-it: hojita de almanaque, % gigante u hora, según el tipo
+        const f = partirFecha(entry.time);
+        let arriba;
+        if (f) {
+          arriba = `<div class="leaf"><span class="leaf-wd">${f.wd}</span><span class="leaf-dd">${parseInt(f.dd, 10)}</span></div>`;
+        } else if (type === 'discount' && /^(\d+%)/.test(entry.title)) {
+          arriba = `<div class="group-pct">${entry.title.match(/^(\d+%)/)[1]}</div>`;
+        } else {
+          arriba = `<div class="group-item-icon">${style.icon}</div>`;
+        }
+        let titulo = entry.title;
+        if (type === 'discount') titulo = titulo.replace(/^\d+%\s+en\s+/i, '');
+        const horaTxt = f ? f.hora : normalizarHora(entry.time || '');
+
+        card.innerHTML = `
+          ${esHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+          ${esProximo ? '<div class="note-next-badge">PRÓXIMO</div>' : ''}
+          ${arriba}
+          <div class="detail-title">${titulo}</div>
+          ${horaTxt ? `<div class="detail-time">${horaTxt}</div>` : ''}
+          ${entry.desc ? `<div class="group-desc">${entry.desc}</div>` : ''}
+          ${entry.who ? `<div class="detail-who">${whoChip(entry.who)}</div>` : ''}
+        `;
+        groupDetailRow.appendChild(card);
+      });
+
+      singleDetailCard.style.display = 'none';
+      groupDetailRow.style.display = 'flex';
+    } else {
+      // ---- tarjeta suelta: un post-it grande, centrado, del color de su categoría ----
+      const st = typeStyle[note.dataset.type];
+      const dCat = document.getElementById('d-cat');
+      dCat.textContent = note.dataset.cat;
+      dCat.style.background = 'rgba(255,255,255,0.55)';
+      singleDetailCard.style.background = st ? st.bg : 'var(--cream)';
+      document.getElementById('d-icon').textContent = st ? st.icon : '';
+
+      const dTime = document.getElementById('d-time');
+      const tiempo = (note.dataset.type === 'schoolTask' || note.dataset.type === 'healthAppointment')
+        ? fechaCorta(note.dataset.time) : normalizarHora(note.dataset.time);
+      dTime.textContent = tiempo || '';
+      dTime.classList.toggle('hidden', !tiempo);
+      document.getElementById('d-title').textContent = note.dataset.title;
+
+      // las líneas vacías se esconden, así no queda espacio muerto ni info repetida
+      const dWho = document.getElementById('d-who');
+      dWho.innerHTML = note.dataset.who ? whoChip(note.dataset.who) : '';
+      dWho.style.display = note.dataset.who ? 'block' : 'none';
+
+      const dDescEl = document.getElementById('d-desc');
+      dDescEl.textContent = note.dataset.desc;
+      dDescEl.style.display = note.dataset.desc ? 'block' : 'none';
+
+      groupDetailRow.style.display = 'none';
+      singleDetailCard.style.display = 'block';
+    }
+
+    overlay.classList.add('show');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      overlay.classList.remove('show');
+    }
+  });
+
+  // ---- MODO NOCHE PROFUNDO: 23:00 → 05:20 ----
+  // Reemplaza el dashboard completo por solo hora + temperatura, bien grande,
+  // rotando de posición despacio. Pausa las llamadas que no hacen falta de noche.
+  let nightModeActive = null; // null = todavía no determinado (evita disparar el "refresco de salida" en la primera carga)
+  let currentTempDisplay = '--°';
+
+  function isDeepNight() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    return h >= 23 || h < 5 || (h === 5 && m < 20);
+  }
+
+  const nightPositions = [
+    { top: '48%', left: '50%' },
+    { top: '40%', left: '38%' },
+    { top: '55%', left: '62%' },
+    { top: '45%', left: '58%' },
+    { top: '52%', left: '42%' }
+  ];
+  let nightPosIndex = 0;
+
+  function cycleNightPosition() {
+    nightPosIndex = (nightPosIndex + 1) % nightPositions.length;
+    const pos = nightPositions[nightPosIndex];
+    const el = document.getElementById('nightClockContent');
+    if (el) { el.style.top = pos.top; el.style.left = pos.left; }
+  }
+  setInterval(cycleNightPosition, 1000 * 60 * 5); // cada 5 min, se mueve un toque
+
+  function checkNightTransition() {
+    const nowNight = isDeepNight();
+    if (nowNight === nightModeActive) return; // sin cambios, no hace nada
+    const wasNight = nightModeActive;
+    nightModeActive = nowNight;
+
+    const nightClock = document.getElementById('nightClock');
+    const dashboard = document.getElementById('device');
+
+    if (nightModeActive) {
+      nightClock.classList.add('show');
+      dashboard.classList.add('night-hidden');
+    } else {
+      nightClock.classList.remove('show');
+      dashboard.classList.remove('night-hidden');
+      if (wasNight !== null) {
+        // recién salimos de la noche: pedimos todo fresco de una, no lo que quedó viejo
+        loadWeather();
+        loadPendingToday();
+        if (isTuesday()) loadTrainStatus();
+        if (typeof buildSecondaryItems === 'function') {
+          buildSecondaryItems();
+          secondaryIndex = 0;
+          if (secondaryItems.length) renderSecondaryItem(secondaryItems[0]);
+        }
+      }
+    }
+  }
+  checkNightTransition();
+  setInterval(checkNightTransition, 1000 * 60); // revisa cada minuto
+
+  // ---- recargo automático diario a las 4am, colchón extra para el 24/7 ----
+  // limpia cualquier acumulación de memoria/estado de días corridos sin reiniciar
+  function scheduleDailyReload() {
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(4, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    setTimeout(() => location.reload(), target - now);
+  }
+  scheduleDailyReload();
+
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+
+  const LAT = -34.5461;
+  const LON = -58.5580;
+  const weekShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  function weatherInfo(code, isDay) {
+    if (code === 0) return { ic: isDay ? '☀️' : '🌙', txt: 'Despejado' };
+    if (code === 1 || code === 2) return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Parcialmente nublado' };
+    if (code === 3) return { ic: '☁️', txt: 'Nublado' };
+    if (code === 45 || code === 48) return { ic: '🌫️', txt: 'Niebla' };
+    if ([51,53,55,56,57].includes(code)) return { ic: '🌦️', txt: 'Llovizna' };
+    if ([61,63,65,66,67].includes(code)) return { ic: '🌧️', txt: 'Lluvia' };
+    if ([71,73,75,77].includes(code)) return { ic: '❄️', txt: 'Nieve' };
+    if ([80,81,82].includes(code)) return { ic: '🌦️', txt: 'Chubascos' };
+    if ([95,96,99].includes(code)) return { ic: '⛈️', txt: 'Tormenta' };
+    return { ic: isDay ? '⛅' : '🌙☁️', txt: 'Variable' };
+  }
+
+  async function loadWeather() {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,wind_speed_10m_max,precipitation_sum&timezone=auto&forecast_days=5`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      const isDayNow = data.current.is_day === 1;
+      const nowInfo = weatherInfo(data.current.weather_code, isDayNow);
+      document.getElementById('w-icon-now').textContent = nowInfo.ic;
+      document.getElementById('w-temp-now').textContent = Math.round(data.current.temperature_2m) + '°';
+      currentTempDisplay = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('nightClockTemp').textContent = currentTempDisplay;
+      document.getElementById('w-cond-now').textContent = nowInfo.txt;
+      document.getElementById('w-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+
+      const days = data.daily.time;
+      lastWeatherDaily = data.daily;
+      if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
+      const codes = data.daily.weather_code;
+      const maxs = data.daily.temperature_2m_max;
+      const mins = data.daily.temperature_2m_min;
+
+      // ---- tarjeta compacta: máx/mín de hoy ----
+      document.getElementById('w-max-today').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('w-min-today').textContent = Math.round(mins[0]) + '°';
+
+      // ---- aviso de lluvia/paraguas ----
+      const rainCodes = [51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99];
+      const rainTag = document.getElementById('rainTag');
+      rainTag.textContent = rainCodes.includes(codes[0]) ? '☔ Llevate paraguas' : '';
+
+      // ---- clima expandido (pantalla completa) ----
+      document.getElementById('wf-icon').textContent = nowInfo.ic;
+      document.getElementById('wf-temp').textContent = Math.round(data.current.temperature_2m) + '°';
+      document.getElementById('wf-cond').textContent = nowInfo.txt;
+      document.getElementById('wf-feels').textContent = Math.round(data.current.apparent_temperature) + '°';
+      document.getElementById('wf-max').textContent = Math.round(maxs[0]) + '°';
+      document.getElementById('wf-min').textContent = Math.round(mins[0]) + '°';
+
+      // amanecer/atardecer y aviso del día, con los mismos datos que ya trajimos
+      const sunEl = document.getElementById('wf-sun');
+      const sunTxt = getSunriseSunsetText(data.daily);
+      sunEl.textContent = sunTxt || '';
+      sunEl.style.display = sunTxt ? 'block' : 'none';
+
+      const advEl = document.getElementById('wf-advisory');
+      const advTxt = getWeatherAdvisory(data.daily);
+      advEl.textContent = advTxt || '';
+      advEl.style.display = advTxt ? 'block' : 'none';
+
+      const forecastEl = document.getElementById('wf-forecast');
+      forecastEl.innerHTML = '';
+      // escala común a los 5 días, para que las barritas se puedan comparar entre sí
+      const gMin = Math.min(...mins.map(Math.round));
+      const gMax = Math.max(...maxs.map(Math.round));
+      const rango = Math.max(1, gMax - gMin);
+      for (let i = 0; i < days.length; i++) {
+        // los días futuros muestran el ícono "de día" (representan el pronóstico general del día)
+        const info = weatherInfo(codes[i], true);
+        const dayLabel = i === 0 ? 'Hoy' : weekShort[new Date(days[i] + 'T00:00:00').getDay()];
+        const card = document.createElement('div');
+        card.className = 'wf-day-card' + (i === 0 ? ' is-today' : '');
+        const lo = Math.round(mins[i]), hi = Math.round(maxs[i]);
+        const desde = ((lo - gMin) / rango) * 100;
+        const ancho = Math.max(8, ((hi - lo) / rango) * 100);
+        card.innerHTML = `
+          <div class="d">${dayLabel}</div>
+          <div class="i">${info.ic}</div>
+          <div class="wf-txt">${info.txt}</div>
+          <div class="wf-range">
+            <span class="lo">${lo}°</span>
+            <span class="wf-bar"><span style="left:${desde}%; width:${ancho}%"></span></span>
+            <span class="hi">${hi}°</span>
+          </div>
+        `;
+        forecastEl.appendChild(card);
+      }
+    } catch (err) {
+      document.getElementById('w-cond-now').textContent = 'Sin conexión';
+    }
+  }
+
+  loadWeather();
+  setInterval(() => { if (!nightModeActive) loadWeather(); }, 1000 * 60 * 30); // de día, cada 30 min
+  setInterval(() => { if (nightModeActive) loadWeather(); }, 1000 * 60 * 90); // de noche, cada 90 min (para que la temp no quede vieja)
+
+  const weatherOverlay = document.getElementById('weatherOverlay');
+  document.getElementById('weatherNoteBtn').addEventListener('click', () => {
+    weatherOverlay.classList.add('show');
+  });
+  weatherOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      weatherOverlay.classList.remove('show');
+    }
+  });
+
+  // ---- calendario de fechas especiales del mes ----
+  // ---- vista semanal: lunes a domingo con todo lo de la semana ----
+  let ultimasCategorias = {};
+  const mesesLargos = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const weekOverlay = document.getElementById('weekOverlay');
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  function renderWeekCard() {
+    const hoy = new Date();
+    // arrancamos siempre en lunes
+    const lunes = new Date(hoy);
+    const offset = (hoy.getDay() + 6) % 7; // 0=lunes ... 6=domingo
+    lunes.setDate(hoy.getDate() - offset);
+    lunes.setHours(0, 0, 0, 0);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+
+    // el día que está mostrando el panel (hoy, o mañana después de las 21):
+    // actividades, descuentos y vencimientos llegan solo para ese día
+    const diaObjetivo = new Date(hoy);
+    if (modoPendientes === 'tomorrow') diaObjetivo.setDate(hoy.getDate() + 1);
+    const masDias = (n) => { const d = new Date(diaObjetivo); d.setDate(d.getDate() + n); return ddmm(d); };
+
+    const moviles = fechasMoviles(hoy.getFullYear());
+    const todasEspeciales = [
+      ...fechasGrupo1.map((f) => ({ ...f, tipo: 'g1' })),
+      ...fechasGrupo2.map((f) => ({ ...f, tipo: 'g2' })),
+      ...moviles.map((f) => ({ ...f, tipo: f.grupo === 1 ? 'g1' : 'g2' })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto, tipo: 'feriado' };
+      })
+    ];
+
+    const porDia = {}; // 'DD/MM' → [{ clase, ic, txt, hora }]
+    const agregar = (dd, item) => { (porDia[dd] = porDia[dd] || []).push(item); };
+
+    (ultimasCategorias.activity || []).forEach((e) =>
+      agregar(ddmm(diaObjetivo), { clase: 'wk-activity', ic: '📅', txt: e.title, hora: normalizarHora(e.time || ''), who: e.who }));
+    (ultimasCategorias.healthAppointment || []).forEach((e) => {
+      const f = partirFecha(e.time);
+      if (f) agregar(`${f.dd}/${f.mm}`, { clase: 'wk-health', ic: '🏥', txt: e.title, hora: f.hora, who: e.who });
+    });
+    (ultimasCategorias.schoolTask || []).forEach((e) => {
+      const f = partirFecha(e.time);
+      if (f) agregar(`${f.dd}/${f.mm}`, { clase: 'wk-school' + (e.done ? ' is-done' : ''), ic: '📚', txt: e.title.replace(/^✅\s*/, '') + (e.done ? ' ✅' : '') });
+    });
+    (ultimasCategorias.reminder || []).forEach((e) => {
+      const m = (e.time || '').match(/en (\d+) d/);
+      agregar(masDias(m ? parseInt(m[1], 10) : 0), { clase: 'wk-reminder', ic: '💳', txt: 'Vence ' + e.title });
+    });
+    (ultimasCategorias.discount || []).forEach((e) =>
+      agregar(ddmm(diaObjetivo), { clase: 'wk-discount', ic: '🛒', txt: e.title }));
+
+    let html = `
+      <div class="week-head">
+        <div class="detail-cat" style="background: var(--mustard);">🗓️ Esta semana</div>
+        <div class="week-range">${lunes.getDate()} de ${mesesLargos[lunes.getMonth()]} al ${domingo.getDate()} de ${mesesLargos[domingo.getMonth()]}</div>
+      </div>
+      <div class="week-grid">`;
+
+    for (let i = 0; i < 7; i++) {
+      const dia = new Date(lunes);
+      dia.setDate(lunes.getDate() + i);
+      const diaDDMM = ddmm(dia);
+      const esHoy = ddmm(hoy) === diaDDMM;
+      const yaPaso = dia < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+      const especiales = todasEspeciales.filter((f) => f.fecha === diaDDMM)
+        .map((f) => ({ clase: 'wk-' + f.tipo, ic: '', txt: f.listado || f.texto }));
+      const items = [...especiales, ...(porDia[diaDDMM] || [])];
+
+      html += `
+        <div class="week-day ${esHoy ? 'is-today' : ''} ${yaPaso ? 'is-past' : ''}">
+          <div class="week-day-head">
+            <span class="week-day-name">${esHoy ? 'Hoy' : diasSemana[i]}</span>
+            <span class="week-day-num">${dia.getDate()}</span>
+          </div>
+          <div class="week-day-items">
+            ${items.length
+              ? items.map((it) => `
+                <div class="wk-chip ${it.clase}">
+                  ${it.hora ? `<span class="wk-hora">${it.hora}</span>` : ''}
+                  <span class="wk-txt">${it.ic ? it.ic + ' ' : ''}${it.txt}</span>
+                  ${it.who && personaDe(it.who) ? `<span class="wk-dot" style="background:${personaDe(it.who).color}"></span>` : ''}
+                </div>`).join('')
+              : '<div class="week-empty">·</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    html += '</div>';
+    document.getElementById('weekCard').innerHTML = html;
+  }
+
+  document.getElementById('weekBtn').addEventListener('click', () => {
+    renderWeekCard();
+    weekOverlay.classList.add('show');
+  });
+  weekOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      weekOverlay.classList.remove('show');
+    }
+  });
+
+  const datesOverlay = document.getElementById('datesOverlay');
+
+  // primer "símbolo" del texto (el emoji), para dibujarlo en el casillero del almanaque
+  function emojiDe(texto) {
+    const m = (texto || '').match(/^\S+/);
+    return m ? m[0] : '⭐';
+  }
+
+  function renderDatesCard() {
+    const lista = fechasDelMes();
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth();
+    const nombreMes = mesesLargos[mes];
+    const proxima = proximaFechaEspecial();
+
+    // ---- almanaque: lunes a domingo ----
+    const primero = new Date(anio, mes, 1);
+    const huecos = (primero.getDay() + 6) % 7;
+    const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+    let celdas = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'].map((d) => `<div class="cal-dow">${d}</div>`).join('');
+    for (let i = 0; i < huecos; i++) celdas += '<div class="cal-cell is-blank"></div>';
+    for (let d = 1; d <= diasDelMes; d++) {
+      const dd = String(d).padStart(2, '0') + '/' + String(mes + 1).padStart(2, '0');
+      const delDia = lista.filter((f) => f.fecha === dd);
+      const esHoy = d === hoy.getDate();
+      const pasado = d < hoy.getDate();
+      const destacada = delDia.some((f) => f.destacada);
+      const feriado = delDia.some((f) => (f.texto || '').startsWith('🇦🇷'));
+      celdas += `
+        <div class="cal-cell ${esHoy ? 'is-today' : ''} ${pasado ? 'is-past' : ''} ${delDia.length ? 'has-date' : ''} ${destacada ? 'is-featured' : ''} ${feriado ? 'is-feriado' : ''}">
+          <span class="cal-num">${d}</span>
+          ${delDia.length ? `<span class="cal-emoji">${delDia.slice(0, 2).map((f) => emojiDe(f.listado || f.texto)).join('')}</span>` : ''}
+        </div>`;
+    }
+
+    let derecha = '';
+    if (proxima) {
+      const cuando = proxima.diffDias === 0 ? '¡Es hoy!' :
+                     proxima.diffDias === 1 ? 'Es mañana' :
+                     `Faltan ${proxima.diffDias} días`;
+      const fechaTxt = `${proxima.fechaObj.getDate()} de ${mesesLargos[proxima.fechaObj.getMonth()]}`;
+      derecha += `
+        <div class="dates-next">
+          <div class="dates-next-label">Lo próximo</div>
+          <div class="dates-next-text">${proxima.diffDias === 0 ? proxima.texto : (proxima.listado || proxima.texto)}${textoEdad(proxima, proxima.fechaObj.getFullYear())}</div>
+          <div class="dates-next-when">${fechaTxt} · ${cuando}</div>
+        </div>`;
+    }
+    derecha += '<div class="dates-list">';
+    if (!lista.length) {
+      derecha += '<div class="dates-row"><span class="dates-row-text">No hay fechas especiales este mes.</span></div>';
+    }
+    lista.forEach((f) => {
+      const pasada = f.diffDias < 0;
+      const esHoy = f.diffDias === 0;
+      derecha += `
+        <div class="dates-row ${pasada ? 'is-past' : ''} ${esHoy ? 'is-today' : ''} ${f.destacada ? 'is-featured' : ''}">
+          <span class="dates-row-date">${parseInt(f.fecha, 10)}</span>
+          <span class="dates-row-text">${f.listado || f.texto}${textoEdad(f, anio)}</span>
+        </div>`;
+    });
+    derecha += '</div>';
+
+    document.getElementById('datesCard').innerHTML = `
+      <div class="dates-head"><div class="detail-cat" style="background: var(--mustard);">📅 ${nombreMes} ${anio}</div></div>
+      <div class="dates-layout">
+        <div class="cal-grid">${celdas}</div>
+        <div class="dates-side">${derecha}</div>
+      </div>`;
+  }
+
+  document.querySelector('.clock-note').style.cursor = 'pointer';
+  document.querySelector('.clock-note').addEventListener('click', () => {
+    renderDatesCard();
+    datesOverlay.classList.add('show');
+  });
+  datesOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      datesOverlay.classList.remove('show');
+    }
+  });
+
+  // ---- efeméride del día: aparece solo si hay una para hoy ----
+  // ---- los dos post-its de los costados ----
+  // Izquierda: la efeméride del día, o la frase del día si hoy no hay efeméride
+  // Derecha: la próxima fecha del calendario familiar (siempre hay una)
+  function renderEfemeride() {
+    const efem = efemerideDeHoy();
+    if (efem) {
+      document.getElementById('efemerideLabel').textContent = 'Efeméride de hoy';
+      document.getElementById('efemerideText').textContent = efem;
+    } else {
+      document.getElementById('efemerideLabel').textContent = 'Frase del día';
+      document.getElementById('efemerideText').textContent = fraseDelDiaActual || '';
+    }
+
+    // ---- derecha: tarjeta de saludo si hoy es día de fiesta; si no, la próxima fecha ----
+    const el = document.getElementById('proximaFechaText');
+    const postitDerecho = document.getElementById('efemerideRight');
+    const etiquetaDerecha = document.getElementById('proximaLabel');
+    const { grupo1 } = fechasDeHoy();
+    if (grupo1.length) {
+      const f = grupo1[0];
+      postitDerecho.classList.add('is-fiesta');
+      etiquetaDerecha.textContent = 'Hoy celebramos';
+      const edad = f.nacimiento ? `<div class="fiesta-edad">${new Date().getFullYear() - f.nacimiento} años</div>` : '';
+      el.innerHTML = `${f.listado || f.texto}${edad}`;
+    } else {
+      postitDerecho.classList.remove('is-fiesta');
+      etiquetaDerecha.textContent = 'Lo que se viene';
+      const proxima = proximaFechaEspecial();
+      if (proxima) {
+        const cuando = proxima.diffDias === 0 ? '¡Es hoy!' :
+                       proxima.diffDias === 1 ? 'Es mañana' :
+                       `Faltan ${proxima.diffDias} días`;
+        el.innerHTML = `${proxima.listado || proxima.texto}${textoEdad(proxima, proxima.fechaObj.getFullYear())}<div class="proxima-cuando">${cuando}</div>`;
+      } else {
+        el.textContent = 'Sin fechas próximas';
+      }
+    }
+  }
+  setInterval(renderEfemeride, 1000 * 60 * 30); // por si cruza la medianoche
+  // la primera llamada va al final del script, cuando ya existen las tablas de fechas
+
+  loadFeriados().then(() => {
+    if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
+    // que "Lo que se viene" se entere de los feriados al toque, no media hora después
+    if (postItsListos) { renderEfemeride(); showNextTickerItem(); }
+  });
+
+  // Estado del tren. Van declaradas ACÁ ARRIBA a propósito: si quedan más abajo,
+  // los martes (cuando el primer ítem que se dibuja es el tren) se usan antes de
+  // existir y el panel entero se corta a la mitad.
+  let trainStatusLabel = 'Consultando...';
+  let trainDetailText = 'Sin datos por ahora.';
+  let trainCurrentStatus = 'gris';
+
+  // ---- ticker: próximos partidos (TheSportsDB) ----
+  let sportsItems = [];
+  let tickerIndex = 0;
+
+  // ---- próximo partido de un equipo, vía TheSportsDB (gratis, sin key) ----
+  const weekShortEs2 = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+  // guarda la última info completa de cada equipo (para armar el post-it expandido)
+  const matchInfo = { '135173': null, '133738': null };
+  function cuentaRegresiva(kickoffMs) {
+    const diffMs = kickoffMs - Date.now();
+    if (diffMs <= 0) return '¡En juego o por comenzar!';
+    const horas = diffMs / (1000 * 60 * 60);
+    if (horas < 1) return `En ${Math.round(diffMs / (1000 * 60))} minutos`;
+    if (horas < 24) return `Hoy, en ${Math.round(horas)} ${Math.round(horas) === 1 ? 'hora' : 'horas'}`;
+    const dias = Math.round(horas / 24);
+    if (dias === 1) return 'Mañana';
+    return `Faltan ${dias} días`;
+  }
+
+  const lastResultInfo = { '135173': null, '133738': null };
+  const lastResultDetail = { '135173': null, '133738': null };
+
+  async function fetchNextMatch(teamId, teamLabel, emoji) {
+    const cacheKey = 'nextMatch_' + teamId;
+    const cacheDataKey = 'nextMatchData_' + teamId;
+    try {
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${teamId}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const ev = data.events && data.events[0];
+      if (!ev) throw new Error('Sin evento');
+
+      // strTimestamp viene en UTC; lo pasamos a hora Argentina para que
+      // no importe en qué país se juegue el partido
+      const utcDate = new Date(ev.strTimestamp + 'Z');
+      const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      const dayName = weekShortEs2[argDate.getDay()];
+      const dd = String(argDate.getDate()).padStart(2, '0');
+      const hh = String(argDate.getHours()).padStart(2, '0');
+      const mm = String(argDate.getMinutes()).padStart(2, '0');
+
+      const isHome = ev.strHomeTeam === teamLabel;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+      const vsText = isHome ? `${teamLabel} vs ${rival}` : `${rival} vs ${teamLabel}`;
+
+      const info = {
+        vsText,
+        league: ev.strLeague || '',
+        idLeague: ev.idLeague || '',
+        season: ev.strSeason || '',
+        venue: ev.strVenue || '',
+        dateTimeText: `${dayName} ${dd} · ${hh}:${mm}hs`,
+        teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge,
+        kickoffMs: utcDate.getTime()
+      };
+
+      const text = `${emoji} ${vsText} — ${dayName} ${dd} ${hh}:${mm}hs`;
+      localStorage.setItem(cacheKey, text); // guarda el último bueno por si la API falla después
+      localStorage.setItem(cacheDataKey, JSON.stringify(info));
+      matchInfo[teamId] = info;
+      return { text, kickoffMs: utcDate.getTime() };
+    } catch (err) {
+      console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
+      const cached = localStorage.getItem(cacheKey);
+      const cachedData = localStorage.getItem(cacheDataKey);
+      if (cachedData) matchInfo[teamId] = JSON.parse(cachedData);
+      return { text: cached || null, kickoffMs: null };
+    }
+  }
+
+  // ---- todas las competencias donde cada equipo puede jugar, para buscar el
+  // último resultado sin importar si fue liga, copa o amistoso ----
+  // ---- nombres de liga en español (la API los devuelve en inglés) ----
+  // ---- traducción de Grandes Premios de F1 ----
+  // La API los devuelve como "Dutch Grand Prix", "Spanish Grand Prix", etc.
+  // Traducimos el gentilicio y armamos "Gran Premio de Países Bajos".
+  const gpPaises = {
+    'Australian': 'Australia', 'Chinese': 'China', 'Japanese': 'Japón',
+    'Bahrain': 'Baréin', 'Saudi Arabian': 'Arabia Saudita', 'Miami': 'Miami',
+    'Emilia Romagna': 'Emilia-Romaña', 'Monaco': 'Mónaco', 'Spanish': 'España',
+    'Canadian': 'Canadá', 'Austrian': 'Austria', 'British': 'Gran Bretaña',
+    'Belgian': 'Bélgica', 'Hungarian': 'Hungría', 'Dutch': 'Países Bajos',
+    'Italian': 'Italia', 'Azerbaijan': 'Azerbaiyán', 'Singapore': 'Singapur',
+    'United States': 'Estados Unidos', 'Mexico City': 'México', 'Mexican': 'México',
+    'São Paulo': 'San Pablo', 'Brazilian': 'Brasil', 'Las Vegas': 'Las Vegas',
+    'Qatar': 'Catar', 'Abu Dhabi': 'Abu Dabi', 'French': 'Francia',
+    'German': 'Alemania', 'Portuguese': 'Portugal', 'Russian': 'Rusia',
+    'Turkish': 'Turquía', 'Styrian': 'Estiria', 'Tuscan': 'Toscana',
+    'Sakhir': 'Sakhir', 'Eifel': 'Eifel', 'Madrid': 'Madrid'
+  };
+
+  function traducirGP(nombre) {
+    if (!nombre) return nombre;
+    const m = nombre.match(/^(.+?)\s+Grand Prix$/i);
+    if (!m) return nombre;
+    const pais = gpPaises[m[1]] || m[1];
+    return `Gran Premio de ${pais}`;
+  }
+
+  // países que aparecen en la ubicación del circuito
+  const paisesEs = {
+    'Netherlands': 'Países Bajos', 'Spain': 'España', 'Italy': 'Italia',
+    'United Kingdom': 'Gran Bretaña', 'UK': 'Gran Bretaña', 'Belgium': 'Bélgica',
+    'Hungary': 'Hungría', 'Austria': 'Austria', 'Monaco': 'Mónaco',
+    'Canada': 'Canadá', 'USA': 'Estados Unidos', 'United States': 'Estados Unidos',
+    'Mexico': 'México', 'Brazil': 'Brasil', 'Japan': 'Japón', 'China': 'China',
+    'Australia': 'Australia', 'Bahrain': 'Baréin', 'Saudi Arabia': 'Arabia Saudita',
+    'Azerbaijan': 'Azerbaiyán', 'Singapore': 'Singapur', 'Qatar': 'Catar',
+    'UAE': 'Emiratos Árabes', 'France': 'Francia', 'Germany': 'Alemania',
+    'Portugal': 'Portugal', 'Turkey': 'Turquía', 'Russia': 'Rusia'
+  };
+
+  const ciudadesEs = {
+    'Mexico City': 'Ciudad de México', 'São Paulo': 'San Pablo', 'Sao Paulo': 'San Pablo',
+    'Monte-Carlo': 'Montecarlo', 'Monte Carlo': 'Montecarlo', 'Baku': 'Bakú',
+    'Jeddah': 'Yeda', 'Shanghai': 'Shanghái', 'Spielberg': 'Spielberg',
+    'Abu Dhabi': 'Abu Dabi', 'Marina Bay': 'Singapur', 'Montreal': 'Montreal',
+    'Lusail': 'Lusail', 'Imola': 'Imola', 'Austin': 'Austin', 'Las Vegas': 'Las Vegas'
+  };
+  const paisesExtraEs = {
+    'UK': 'Reino Unido', 'USA': 'Estados Unidos', 'United States': 'Estados Unidos',
+    'Netherlands': 'Países Bajos', 'Belgium': 'Bélgica', 'Hungary': 'Hungría',
+    'Italy': 'Italia', 'Spain': 'España', 'Monaco': 'Mónaco', 'Canada': 'Canadá',
+    'Austria': 'Austria', 'Saudi Arabia': 'Arabia Saudita', 'United Arab Emirates': 'Emiratos Árabes'
+  };
+
+  function traducirUbicacion(texto) {
+    if (!texto) return texto;
+    let out = texto;
+    Object.entries(ciudadesEs).forEach(([en, es]) => { out = out.split(en).join(es); });
+    Object.entries(paisesExtraEs).forEach(([en, es]) => {
+      out = out.replace(new RegExp('\\b' + en + '\\b', 'g'), es);
+    });
+    Object.entries(paisesEs).forEach(([en, es]) => {
+      out = out.replace(new RegExp('\\b' + en + '\\b', 'g'), es);
+    });
+    return out;
+  }
+
+  const leagueNamesEs = {
+    'Argentinian Primera Division': 'Liga Profesional',
+    'Argentinian Primera División': 'Liga Profesional',
+    'Spanish La Liga': 'LaLiga',
+    'UEFA Champions League': 'Champions League',
+    'Spanish Copa del Rey': 'Copa del Rey',
+    'Copa Libertadores': 'Copa Libertadores',
+    'Copa Sudamericana': 'Copa Sudamericana',
+    'Argentinian Copa Argentina': 'Copa Argentina',
+    'FIFA Club World Cup': 'Mundial de Clubes',
+    'Club Friendlies': 'Amistoso',
+    'Soccer Club Friendlies': 'Amistoso'
+  };
+
+  function ligaEnEspanol(nombre) {
+    return leagueNamesEs[nombre] || nombre;
+  }
+
+  const teamCompetitions = {
+    '135173': [ // San Lorenzo
+      { idLeague: '4406' }, // Primera División
+      { idLeague: '4500' }, // Copa Argentina
+      { idLeague: '4501' }, // Copa Libertadores
+      { idLeague: '4724' }, // Copa Sudamericana
+      { idLeague: '4569' }  // Amistosos de clubes
+    ],
+    '133738': [ // Real Madrid
+      { idLeague: '4335' }, // La Liga
+      { idLeague: '4480' }, // Champions League
+      { idLeague: '4483' }, // Copa del Rey
+      { idLeague: '4503' }, // Mundial de Clubes
+      { idLeague: '4569' }  // Amistosos de clubes
+    ]
+  };
+
+  // ---- último resultado jugado, buscando en TODAS las competencias del equipo ----
+  async function fetchLastResult(teamId, teamLabel, attempt = 1) {
+    const cacheKey = 'lastResult_' + teamId;
+    try {
+      const competitions = teamCompetitions[teamId] || [];
+      const nowMs = Date.now();
+
+      // Buscamos día por día hacia atrás desde hoy. La consulta de temporada completa
+      // ("eventsseason.php") viene recortada en la clave gratuita y por eso devolvía
+      // partidos viejos del arranque del torneo; pidiendo por día, cada respuesta es
+      // chica y no la corta nadie.
+      const MAX_DIAS_ATRAS = 21;
+      let encontrado = null;
+
+      for (let d = 0; d <= MAX_DIAS_ATRAS && !encontrado; d++) {
+        const fecha = new Date(nowMs - d * 86400000);
+        const fechaStr = fecha.getFullYear() + '-' +
+          String(fecha.getMonth() + 1).padStart(2, '0') + '-' +
+          String(fecha.getDate()).padStart(2, '0');
+
+        const resultadosDelDia = await Promise.all(
+          competitions.map(async (comp) => {
+            try {
+              const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d=${fechaStr}&l=${comp.idLeague}`);
+              if (!res.ok) return [];
+              const data = await res.json();
+              return data.events || [];
+            } catch (e) {
+              return [];
+            }
+          })
+        );
+
+        const delEquipo = resultadosDelDia
+          .flat()
+          .filter((e) => e.strHomeTeam === teamLabel || e.strAwayTeam === teamLabel)
+          .filter((e) => e.intHomeScore !== null && e.intHomeScore !== undefined && e.intAwayScore !== null && e.intAwayScore !== undefined)
+          .map((e) => ({ ...e, _ts: e.strTimestamp ? new Date(e.strTimestamp + 'Z').getTime() : NaN }))
+          .filter((e) => !isNaN(e._ts) && e._ts <= nowMs)
+          .sort((a, b) => b._ts - a._ts);
+
+        if (delEquipo.length) {
+          encontrado = delEquipo[0];
+          console.log(`[${teamLabel}] encontrado en ${fechaStr}: ${encontrado.strEvent} (${encontrado.strLeague}) ${encontrado.intHomeScore}-${encontrado.intAwayScore}`);
+        }
+      }
+
+      const ev = encontrado;
+      if (!ev) throw new Error(`Sin partido jugado en los últimos ${MAX_DIAS_ATRAS} días`);
+
+      const isHome = ev.strHomeTeam === teamLabel;
+      const teamScore = isHome ? ev.intHomeScore : ev.intAwayScore;
+      const rivalScore = isHome ? ev.intAwayScore : ev.intHomeScore;
+      const rival = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+
+      let resultEmoji = '🤝';
+      if (Number(teamScore) > Number(rivalScore)) resultEmoji = '✅';
+      else if (Number(teamScore) < Number(rivalScore)) resultEmoji = '❌';
+
+      const text = `${resultEmoji} Último: ${teamLabel} ${teamScore} - ${rivalScore} ${rival}`;
+      localStorage.setItem(cacheKey, text);
+      lastResultInfo[teamId] = text;
+
+      // guardamos también los datos sueltos para poder dibujar el marcador con escudos
+      const detalle = {
+        teamLabel, teamScore, rivalScore, rival, resultEmoji,
+        teamBadge: isHome ? ev.strHomeTeamBadge : ev.strAwayTeamBadge,
+        rivalBadge: isHome ? ev.strAwayTeamBadge : ev.strHomeTeamBadge
+      };
+      lastResultDetail[teamId] = detalle;
+      localStorage.setItem(cacheKey + '_detail', JSON.stringify(detalle));
+      return text;
+    } catch (err) {
+      console.warn(`Último resultado falló (intento ${attempt}):`, teamLabel, err.message);
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // espera 3 seg y reintenta
+        return fetchLastResult(teamId, teamLabel, attempt + 1);
+      }
+      // ya reintentamos 3 veces, recién ahí usamos el respaldo guardado
+      const cached = localStorage.getItem(cacheKey);
+      lastResultInfo[teamId] = cached || null;
+      const cachedDetail = localStorage.getItem(cacheKey + '_detail');
+      if (cachedDetail) lastResultDetail[teamId] = JSON.parse(cachedDetail);
+      return cached || null;
+    }
+  }
+
+  // guarda, por equipo, para qué horario de partido ya programamos la consulta
+  // siguiente — así no reprogramamos de más si todavía es el mismo partido
+  const scheduledFor = { '135173': null, '133738': null };
+
+  function scheduleNextCheckFor(teamId, teamLabel, emoji, kickoffMs) {
+    if (!kickoffMs || scheduledFor[teamId] === kickoffMs) return; // ya programado para este partido
+    scheduledFor[teamId] = kickoffMs;
+
+    const checkAt = kickoffMs + 1000 * 60 * 60 * 3; // 3 hs después del inicio, de sobra para que termine
+    const delay = checkAt - Date.now();
+    if (delay <= 0) return; // ya pasó, la rutina periódica lo va a agarrar igual
+
+    setTimeout(async () => {
+      // justo acá el partido anterior ya terminó: pedimos el resultado Y el próximo partido juntos
+      const [result] = await Promise.all([
+        fetchNextMatch(teamId, teamLabel, emoji),
+        fetchLastResult(teamId, teamLabel)
+      ]);
+      if (result.text) {
+        sportsItems = sportsItems.filter((t) => !t.includes(teamLabel));
+        sportsItems.push(result.text);
+      }
+      renderSportsCards();
+      showNextTickerItem();
+      scheduleNextCheckFor(teamId, teamLabel, emoji, result.kickoffMs); // programa el próximo partido
+    }, delay);
+  }
+
+  // ---- fórmula 1: Jolpica API (sucesora gratuita de Ergast), sin key ----
+  let f1Info = null;
+
+  async function fetchF1Info() {
+    try {
+      const res = await fetch('https://api.jolpi.ca/ergast/f1/current/next.json');
+      const data = await res.json();
+      const race = data.MRData.RaceTable.Races[0];
+      if (!race) throw new Error('Sin próxima carrera');
+
+      const sessions = [];
+      const add = (label, obj) => {
+        if (obj && obj.date && obj.time) sessions.push({ label, utcMs: new Date(obj.date + 'T' + obj.time).getTime() });
+      };
+      add('Práctica 1', race.FirstPractice);
+      add('Práctica 2', race.SecondPractice);
+      add('Práctica 3', race.ThirdPractice);
+      add('Clasificación', race.Qualifying);
+      add('Sprint', race.Sprint);
+      add('Carrera', { date: race.date, time: race.time });
+      sessions.sort((a, b) => a.utcMs - b.utcMs);
+
+      f1Info = {
+        raceName: race.raceName,
+        circuit: race.Circuit ? race.Circuit.circuitName : '',
+        locality: race.Circuit && race.Circuit.Location ? race.Circuit.Location.locality + ', ' + race.Circuit.Location.country : '',
+        sessions
+      };
+      localStorage.setItem('f1Info', JSON.stringify(f1Info));
+    } catch (err) {
+      console.warn('F1 sin conexión, uso guardado:', err.message);
+      const cached = localStorage.getItem('f1Info');
+      if (cached) f1Info = JSON.parse(cached);
+    }
+  }
+
+  function isF1WeekendActive() {
+    if (!f1Info || !f1Info.sessions.length) return false;
+    const nowMs = Date.now();
+    const first = f1Info.sessions[0];
+    const last = f1Info.sessions[f1Info.sessions.length - 1];
+    const daysUntilFirst = (first.utcMs - nowMs) / (1000 * 60 * 60 * 24);
+    if (daysUntilFirst > 3) return false; // todavía falta mucho
+    if (nowMs > last.utcMs + 1000 * 60 * 60 * 3) return false; // ya terminó (carrera + margen)
+    return true;
+  }
+
+  function formatSessionTime(utcMs) {
+    const utcDate = new Date(utcMs);
+    const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    const dayName = weekShortEs2[argDate.getDay()];
+    const hh = String(argDate.getHours()).padStart(2, '0');
+    const mm = String(argDate.getMinutes()).padStart(2, '0');
+    return `${dayName} ${hh}:${mm}hs`;
+  }
+
+  async function loadSports() {
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const results = await Promise.all(
+      teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
+    );
+    await Promise.all(teams.map((t) => fetchLastResult(t.id, t.label)));
+    await fetchF1Info();
+    sportsItems = results.map((r) => r.text).filter(Boolean);
+    results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
+    renderSportsCards();
+    showNextTickerItem();
+  }
+
+  // ---- arma los post-its del desplegable de fútbol (+ F1 si corresponde) ----
+  function renderSportsCards() {
+    const row = document.getElementById('sportsRow');
+    if (!row) return;
+    row.innerHTML = '';
+
+    const teamIds = ['135173', '133738'];
+    teamIds.forEach((id) => {
+      const info = matchInfo[id];
+      const lastResult = lastResultInfo[id];
+      const card = document.createElement('div');
+      card.className = 'full-postit sports-postit';
+
+      if (!info) {
+        card.innerHTML = `<div class="sports-league">Sin datos por ahora</div>`;
+        row.appendChild(card);
+        return;
+      }
+
+      const detalle = lastResultDetail[id];
+      const marcadorHtml = detalle ? `
+        <div class="sports-scoreline">
+          <div class="scoreline-label">Último partido</div>
+          <div class="scoreline-row">
+            <img class="scoreline-badge" src="${detalle.teamBadge || ''}" onerror="this.style.display='none'">
+            <span class="scoreline-num">${detalle.teamScore}</span>
+            <span class="scoreline-dash">-</span>
+            <span class="scoreline-num">${detalle.rivalScore}</span>
+            <img class="scoreline-badge" src="${detalle.rivalBadge || ''}" onerror="this.style.display='none'">
+          </div>
+          <div class="scoreline-rival">${detalle.resultEmoji} vs ${detalle.rival}</div>
+        </div>
+      ` : (lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : '');
+
+      card.innerHTML = `
+        <div class="sports-league">${ligaEnEspanol(info.league)}</div>
+        <div class="sports-teams">
+          <img class="sports-badge" src="${info.teamBadge || ''}" onerror="this.style.display='none'">
+          <div class="sports-vs">vs</div>
+          <img class="sports-badge" src="${info.rivalBadge || ''}" onerror="this.style.display='none'">
+        </div>
+        <div class="sports-matchup">${info.vsText}</div>
+        <div class="sports-datetime">${info.dateTimeText}</div>
+        ${info.kickoffMs ? `<div class="sports-countdown${(info.kickoffMs - Date.now()) < 1000*60*60*3 ? ' is-imminent' : ''}">${cuentaRegresiva(info.kickoffMs)}</div>` : ''}
+        <div class="sports-venue">${info.venue ? '🏟️ ' + info.venue : ''}</div>
+        ${marcadorHtml}
+      `;
+      row.appendChild(card);
+    });
+
+    if (isF1WeekendActive()) {
+      const card = document.createElement('div');
+      card.className = 'full-postit sports-postit f1-postit';
+      const nowMsF1 = Date.now();
+      const proximaSesion = f1Info.sessions.find((s) => s.utcMs > nowMsF1);
+      const sessionsHtml = f1Info.sessions
+        .map((s) => {
+          const yaPaso = s.utcMs <= nowMsF1;
+          const esProxima = proximaSesion && s.utcMs === proximaSesion.utcMs;
+          const clase = esProxima ? 'f1-session-row is-next' : (yaPaso ? 'f1-session-row is-past' : 'f1-session-row');
+          return `<div class="${clase}"><span>${s.label}</span><span>${formatSessionTime(s.utcMs)}</span></div>`;
+        })
+        .join('');
+      card.innerHTML = `
+        <div class="f1-checkered"></div>
+        <div class="sports-league">Fórmula 1</div>
+        <div class="sports-matchup" style="margin-top:16px;">🏎️ ${traducirGP(f1Info.raceName)}</div>
+        ${proximaSesion ? `<div class="sports-countdown">${cuentaRegresiva(proximaSesion.utcMs)} — ${proximaSesion.label}</div>` : ''}
+        <div class="f1-sessions">${sessionsHtml}</div>
+        <div class="sports-venue">${f1Info.circuit ? '🏁 ' + f1Info.circuit : ''}${f1Info.locality ? `<span class="f1-venue-city">${traducirUbicacion(f1Info.locality)}</span>` : ''}</div>
+      `;
+      row.appendChild(card);
+    }
+
+    row.classList.toggle('count-3', row.children.length >= 3);
+  }
+
+  function showNextTickerItem() {
+    const el = document.getElementById('newsText');
+    const teamIds = ['135173', '133738'];
+    const parts = [];
+
+    // los saludos del día van primero en el cartel (las tablas de fechas existen recién
+    // al final del script: antes de eso, postItsListos es false y no las tocamos)
+    if (postItsListos) {
+      const { grupo1, grupo2 } = fechasDeHoy();
+      grupo1.forEach((f) => parts.push(`${saludoDelDia(f).toUpperCase()}`));
+      grupo2.forEach((f) => parts.push(f.texto.toUpperCase()));
+    }
+
+    teamIds.forEach((id) => {
+      const info = matchInfo[id];
+      if (!info) return;
+      let html = '';
+      if (info.teamBadge) html += `<img class="ticker-badge" src="${info.teamBadge}" onerror="this.style.display='none'">`;
+      html += `${info.vsText} — ${info.dateTimeText}`;
+      if (info.rivalBadge) html += `<img class="ticker-badge" src="${info.rivalBadge}" onerror="this.style.display='none'">`;
+      parts.push(html);
+    });
+
+    if (isF1WeekendActive()) {
+      const nowMs = Date.now();
+      const next = f1Info.sessions.find((s) => s.utcMs > nowMs) || f1Info.sessions[f1Info.sessions.length - 1];
+      parts.push(`🏎️ F1 — ${traducirGP(f1Info.raceName)}: ${next.label} ${formatSessionTime(next.utcMs)}`);
+    }
+
+    const soloSaludos = parts.length && !teamIds.some((id) => matchInfo[id]);
+    if ((!parts.length || soloSaludos) && sportsItems.length) {
+      // respaldo si todavía no cargó matchInfo pero sí el texto simple
+      el.innerHTML = [...parts, ...sportsItems].join('     •     ') + '     •     ';
+      return;
+    }
+    if (!parts.length) return;
+
+    el.innerHTML = parts.join('     •     ') + '     •     ';
+  }
+
+  loadSports();
+  showNextTickerItem();
+  setInterval(showNextTickerItem, 1000 * 60 * 5); // refresca el texto cada 5 min por si cambió algo
+  setInterval(loadSports, 1000 * 60 * 60 * 2); // rutina de respaldo cada 2 hs, no depende del timer puntual
+
+  // ---- red de seguridad: si el timer puntual se perdió (por una recarga de
+  // página, por ejemplo), esto se da cuenta solo y refresca igual ----
+  async function checkStaleMatches() {
+    const teams = [
+      { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
+      { id: '133738', label: 'Real Madrid', emoji: '⚪' }
+    ];
+    const now = Date.now();
+    for (const t of teams) {
+      const info = matchInfo[t.id];
+      const yaDeberiaHaberTerminado = info && info.kickoffMs && now > info.kickoffMs + 1000 * 60 * 60 * 3;
+      if (!yaDeberiaHaberTerminado) continue;
+
+      console.warn('Partido de ' + t.label + ' vencido sin refrescar, corrigiendo ahora');
+      const [result] = await Promise.all([
+        fetchNextMatch(t.id, t.label, t.emoji),
+        fetchLastResult(t.id, t.label)
+      ]);
+      if (result.text) {
+        sportsItems = sportsItems.filter((x) => !x.includes(t.label));
+        sportsItems.push(result.text);
+      }
+      renderSportsCards();
+      showNextTickerItem();
+      scheduleNextCheckFor(t.id, t.label, t.emoji, result.kickoffMs);
+    }
+  }
+  setInterval(checkStaleMatches, 1000 * 60 * 15); // revisa cada 15 min
+
+  const sportsOverlay = document.getElementById('sportsOverlay');
+  document.querySelector('.news-ribbon').style.cursor = 'pointer';
+  document.querySelector('.news-ribbon').addEventListener('click', () => {
+    sportsOverlay.classList.add('show');
+  });
+  sportsOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('.full-postit')) {
+      sportsOverlay.classList.remove('show');
+    }
+  });
+
+  document.getElementById('sportsRefresh').addEventListener('click', async (e) => {
+    e.stopPropagation(); // que no dispare el cierre del overlay
+    const btn = e.currentTarget;
+    if (btn.classList.contains('spinning')) return; // ya está recargando, no duplicar
+    btn.classList.add('spinning');
+    try {
+      await loadSports();
+    } finally {
+      btn.classList.remove('spinning');
+    }
+  });
+
+  // ---- tren mitre: semáforo inline, lee la página oficial en segundo plano ----
+  // ---- luna + eclipses: se muestra los días que NO es martes, en vez del tren ----
+  // 100% calculado localmente, sin ninguna API — no se puede romper nunca
+  function getMoonPhaseInfo(date) {
+    const synodicMonth = 29.53058867;
+    const knownNewMoonMs = Date.UTC(2000, 0, 6, 18, 14);
+    const daysSince = (date.getTime() - knownNewMoonMs) / 86400000;
+    let phase = (daysSince % synodicMonth) / synodicMonth;
+    if (phase < 0) phase += 1;
+
+    const phases = [
+      { name: 'Luna Nueva', ic: '🌑' },
+      { name: 'Luna Creciente', ic: '🌒' },
+      { name: 'Cuarto Creciente', ic: '🌓' },
+      { name: 'Gibosa Creciente', ic: '🌔' },
+      { name: 'Luna Llena', ic: '🌕' },
+      { name: 'Gibosa Menguante', ic: '🌖' },
+      { name: 'Cuarto Menguante', ic: '🌗' },
+      { name: 'Luna Menguante', ic: '🌘' }
+    ];
+    const index = Math.floor(phase * 8 + 0.5) % 8;
+    return phases[index];
+  }
+
+  const moonPhrases = {
+    'Luna Nueva': [
+      '"Cada final es también un comienzo silencioso."',
+      '"Lo que no se ve todavía, ya está creciendo por dentro."',
+      '"Sembrá hoy lo que querés cosechar mañana."',
+      '"La oscuridad también es un buen lugar para empezar."'
+    ],
+    'Luna Creciente': [
+      '"De a poco también se llega — no hay que apurar la luz."',
+      '"Cada día un poquito más, eso ya es avanzar."',
+      '"Lo que crece despacio, crece firme."'
+    ],
+    'Cuarto Creciente': [
+      '"A mitad de camino, ya se ve bastante más lejos."',
+      '"Los desafíos de hoy son el impulso de mañana."',
+      '"Seguí, que ya falta menos que lo que ya recorriste."'
+    ],
+    'Gibosa Creciente': [
+      '"Falta poco para el brillo completo — no aflojes ahora."',
+      '"La paciencia también es una forma de fuerza."',
+      '"Ya casi. Sostené un poco más."'
+    ],
+    'Luna Llena': [
+      '"Hoy el cielo está completo — buen día para celebrar lo hecho."',
+      '"Lo que sembraste hace tiempo, hoy se ve entero."',
+      '"Un buen momento para agradecer lo que ya tenés."',
+      '"Todo lo que creciste, hoy se nota."'
+    ],
+    'Gibosa Menguante': [
+      '"Después de la plenitud, viene el ordenar lo vivido."',
+      '"No todo tiene que seguir creciendo — a veces toca guardar."',
+      '"Un buen momento para hacer balance."'
+    ],
+    'Cuarto Menguante': [
+      '"Soltar también es avanzar, aunque no lo parezca."',
+      '"Lo que ya no suma, se puede dejar ir tranquilo."',
+      '"A mitad de camino de vuelta a empezar."'
+    ],
+    'Luna Menguante': [
+      '"Antes de lo nuevo, viene el descanso."',
+      '"Cerrar bien un ciclo es preparar el que sigue."',
+      '"Lo que se va, deja lugar para lo que viene."'
+    ]
+  };
+
+  // fechas de eclipses 2026-2027, dato astronómico fijo — no depende de ninguna API
+  // ═══════════════════════════════════════════════════════════════
+  // FECHAS ESPECIALES
+  // Grupo 1 → el saludo se queda FIJO todo el día (mimo)
+  // Grupo 2 → rota junto con la luna, el sol y los avisos
+  // ═══════════════════════════════════════════════════════════════
+
+  // fechas fijas del grupo 1, formato 'DD/MM'
+  const fechasGrupo1 = [
+    // nacimiento → el saludo y los listados dicen cuántos años cumple
+    // tema → qué animación de fiesta se ve ese día (confeti, corazones, nieve, destellos, huellitas, estrellas)
+    { fecha: '06/03', texto: '🎂 ¡Feliz cumpleaños, Gustavo!', listado: '🎂 Cumpleaños de Gustavo', nacimiento: 1981, tema: 'cumple' },
+    { fecha: '18/03', texto: '🎂 ¡Feliz cumpleaños, Perla!', listado: '🎂 Cumpleaños de Perla', nacimiento: 1984, tema: 'cumple' },
+    { fecha: '13/04', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!', listado: '🎂 Cumpleaños de Lorenzo', nacimiento: 2014, tema: 'cumple' },
+    { fecha: '13/08', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!', listado: '🤚 Día del Zurdo', tema: 'estrella' },
+    { fecha: '13/11', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!', listado: '💍 Aniversario de casados', tema: 'amor' },
+    { fecha: '17/12', texto: '📊 ¡Feliz Día del Contador, Perla!', listado: '📊 Día del Contador', tema: 'estrella' },
+    { fecha: '26/12', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!', listado: '❤️ Aniversario de novios', tema: 'amor' },
+    { fecha: '25/12', texto: '🎄 ¡Feliz Navidad para toda la familia!', listado: '🎄 Navidad', tema: 'navidad' },
+    { fecha: '01/01', texto: '🎉 ¡Feliz Año Nuevo!', listado: '🎉 Año Nuevo', tema: 'anionuevo' },
+    { fecha: '20/02', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '08/08', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '29/10', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '25/03', texto: '🐱 ¡Feliz cumpleaños, Wall-e!', listado: '🐱 Cumpleaños de Wall-e', tema: 'gato' },
+    { fecha: '28/03', texto: '🐱 ¡Feliz cumpleaños, Mabel!', listado: '🐱 Cumpleaños de Mabel', tema: 'gato' }
+  ];
+
+  // " · cumple 46" para los listados (almanaque, "lo que se viene")
+  function textoEdad(f, anio) {
+    return f && f.nacimiento ? ` · cumple ${anio - f.nacimiento}` : '';
+  }
+  // el saludo del día con la edad: "🎂 ¡Feliz cumpleaños, Gustavo! · 46 años"
+  function saludoDelDia(f) {
+    if (!f.nacimiento) return f.texto;
+    return `${f.texto} · ${new Date().getFullYear() - f.nacimiento} años`;
+  }
+
+  // fechas fijas del grupo 2 (rotan, no se quedan fijas)
+  // 'texto' = el saludo del día · 'listado' = cómo se ve en el calendario y la semana
+  const fechasGrupo2 = [
+    { fecha: '05/01', texto: '🎂 ¡Hoy cumple años Pablo!', listado: '🎂 Cumpleaños de Pablo' },
+    { fecha: '04/04', texto: '🎂 ¡Hoy cumple años Teo!', listado: '🎂 Cumpleaños de Teo' },
+    { fecha: '07/07', texto: '🎂 ¡Hoy cumple años Zuni!', listado: '🎂 Cumpleaños de Zuni' },
+    { fecha: '12/07', texto: '🎂 ¡Hoy cumple años Ignacio!', listado: '🎂 Cumpleaños de Ignacio' },
+    { fecha: '26/07', texto: '👴 Día de los Abuelos', listado: '👴 Día de los Abuelos' },
+    { fecha: '26/08', texto: '🎂 ¡Hoy cumple años Kiara!', listado: '🎂 Cumpleaños de Kiara' },
+    { fecha: '24/09', texto: '🎂 ¡Hoy cumple años Gloria!', listado: '🎂 Cumpleaños de Gloria' },
+    { fecha: '28/09', texto: '🎂 ¡Hoy cumple años Aldana!', listado: '🎂 Cumpleaños de Aldana' },
+    { fecha: '22/11', texto: '🎂 ¡Hoy cumple años Martin!', listado: '🎂 Cumpleaños de Martin' }
+  ];
+
+  // ---- fechas móviles: se calculan solas cada año ----
+  function domingoNumero(anio, mes, n) { // mes 1-12, n = 1er/2do/3er domingo
+    const primero = new Date(anio, mes - 1, 1);
+    const diasHastaDomingo = (7 - primero.getDay()) % 7;
+    return new Date(anio, mes - 1, 1 + diasHastaDomingo + (n - 1) * 7);
+  }
+
+  function lunesNumero(anio, mes, n) {
+    const primero = new Date(anio, mes - 1, 1);
+    const diasHastaLunes = (8 - primero.getDay()) % 7;
+    return new Date(anio, mes - 1, 1 + diasHastaLunes + (n - 1) * 7);
+  }
+
+  // ---- feriados nacionales: API gratuita, sin clave ----
+  let feriadosDelAnio = [];
+
+  function fechasMoviles(anio) {
+    const lista = [
+      { fecha: ddmm(domingoNumero(anio, 6, 3)), texto: '👨 ¡Feliz Día del Padre, Gustavo!', listado: '👨 Día del Padre', grupo: 1, tema: 'estrella' },
+      { fecha: ddmm(domingoNumero(anio, 10, 3)), texto: '👩 ¡Feliz Día de la Madre, Perla!', listado: '👩 Día de la Madre', grupo: 1, tema: 'amor' },
+      { fecha: ddmm(domingoNumero(anio, 8, 3)), texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', listado: '🧒 Día del Niño', grupo: 1, tema: 'cumple' },
+      { fecha: ddmm(domingoNumero(anio, 11, 2)), texto: '👵 Día de la Abuela', listado: '👵 Día de la Abuela', grupo: 2 }
+    ];
+
+    // Día del Plástico: 3er lunes de noviembre, pasa al martes si ese lunes es feriado
+    const lunesPlastico = lunesNumero(anio, 11, 3);
+    let fechaPlastico = lunesPlastico;
+    if (feriadosDelAnio.some((f) => f.fecha === ymd(lunesPlastico))) {
+      fechaPlastico = new Date(lunesPlastico.getTime() + 86400000);
+    }
+    lista.push({ fecha: ddmm(fechaPlastico), texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', listado: '🏭 Día del Plástico', grupo: 1, tema: 'estrella' });
+
+    return lista;
+  }
+
+  function ymd(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+
+  async function loadFeriados() {
+    const anio = new Date().getFullYear();
+    const cacheKey = 'feriados_' + anio;
+    try {
+      const res = await fetch(`https://api.argentinadatos.com/v1/feriados/${anio}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      // la API devuelve [{ fecha, tipo, nombre }] — contemplamos 'motivo' por si cambia
+      feriadosDelAnio = (data || []).map((f) => ({ fecha: f.fecha, texto: '🇦🇷 ' + (f.nombre || f.motivo || 'Feriado') }));
+      localStorage.setItem(cacheKey, JSON.stringify(feriadosDelAnio));
+    } catch (err) {
+      console.warn('Feriados sin conexión, uso guardado:', err.message);
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) feriadosDelAnio = JSON.parse(cached);
+    }
+  }
+
+  // ---- junta todo lo del día de hoy ----
+  function fechasDeHoy() {
+    const hoy = new Date();
+    const hoyDDMM = ddmm(hoy);
+    const hoyYMD = ymd(hoy);
+    const moviles = fechasMoviles(hoy.getFullYear());
+
+    const grupo1 = [
+      ...fechasGrupo1.filter((f) => f.fecha === hoyDDMM),
+      ...moviles.filter((f) => f.grupo === 1 && f.fecha === hoyDDMM)
+    ];
+    const grupo2 = [
+      ...fechasGrupo2.filter((f) => f.fecha === hoyDDMM),
+      ...moviles.filter((f) => f.grupo === 2 && f.fecha === hoyDDMM),
+      ...feriadosDelAnio.filter((f) => f.fecha === hoyYMD)
+    ];
+    return { grupo1, grupo2 };
+  }
+
+  // ---- todas las fechas del mes en curso, para la pantalla del calendario ----
+  // ---- la próxima fecha especial, mirando hasta 60 días adelante ----
+  // (así a fin de mes no queda vacío: sigue al mes siguiente, y al año siguiente si hace falta)
+  function proximaFechaEspecial() {
+    const hoy = new Date();
+    const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    const armarLista = (anio) => [
+      ...fechasGrupo1.map((f) => ({ ...f })),
+      ...fechasGrupo2.map((f) => ({ ...f })),
+      ...fechasMoviles(anio).map((f) => ({ ...f })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto };
+      })
+    ];
+
+    const candidatos = [];
+    // este año y el que viene, para cubrir el salto de diciembre a enero
+    [hoy.getFullYear(), hoy.getFullYear() + 1].forEach((anio) => {
+      armarLista(anio).forEach((f) => {
+        const [d, m] = f.fecha.split('/');
+        const fechaObj = new Date(anio, parseInt(m, 10) - 1, parseInt(d, 10));
+        const diffDias = Math.round((fechaObj - hoySinHora) / 86400000);
+        if (diffDias >= 0 && diffDias <= 60) candidatos.push({ ...f, diffDias, fechaObj });
+      });
+    });
+
+    candidatos.sort((a, b) => a.diffDias - b.diffDias);
+    return candidatos[0] || null;
+  }
+
+  function fechasDelMes() {
+    const hoy = new Date();
+    const mesActual = String(hoy.getMonth() + 1).padStart(2, '0');
+    const moviles = fechasMoviles(hoy.getFullYear());
+
+    const todas = [
+      ...fechasGrupo1.map((f) => ({ ...f, destacada: true })),
+      ...fechasGrupo2.map((f) => ({ ...f, destacada: false })),
+      ...moviles.map((f) => ({ ...f, destacada: f.grupo === 1 })),
+      ...feriadosDelAnio.map((f) => {
+        const [a, m, d] = f.fecha.split('-');
+        return { fecha: `${d}/${m}`, texto: f.texto, destacada: false };
+      })
+    ];
+
+    return todas
+      .filter((f) => f.fecha.split('/')[1] === mesActual)
+      .map((f) => {
+        const [d, m] = f.fecha.split('/');
+        const fechaObj = new Date(hoy.getFullYear(), parseInt(m, 10) - 1, parseInt(d, 10));
+        const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const diffDias = Math.round((fechaObj - hoySinHora) / 86400000);
+        return { ...f, diffDias, fechaObj };
+      })
+      .sort((a, b) => a.fechaObj - b.fechaObj);
+  }
+
+  const eclipses = [
+    { date: '2026-02-17', type: 'solar', label: 'Eclipse solar anular', ic: '☀️', phrase: '"Hoy el cielo se detiene un instante — buen día para pausar vos también."' },
+    { date: '2026-03-02', type: 'lunar', label: 'Eclipse lunar total', ic: '🌕', phrase: '"La Luna se tiñe de sombra hoy — dejá ir lo que ya cumplió su ciclo."' },
+    { date: '2026-03-03', type: 'lunar', label: 'Eclipse lunar total', ic: '🌕', phrase: '"La Luna se tiñe de sombra hoy — dejá ir lo que ya cumplió su ciclo."' },
+    { date: '2026-08-27', type: 'lunar', label: 'Eclipse lunar parcial', ic: '🌗', phrase: '"Un eclipse profundo hoy — buen momento para mirar hacia adentro."' },
+    { date: '2026-08-28', type: 'lunar', label: 'Eclipse lunar parcial', ic: '🌗', phrase: '"Un eclipse profundo hoy — buen momento para mirar hacia adentro."' },
+    { date: '2027-02-06', type: 'solar', label: 'Eclipse solar anular', ic: '☀️', phrase: '"Hoy el cielo se detiene un instante — buen día para pausar vos también."' },
+    { date: '2027-02-20', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-02-21', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-07-18', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-08-02', type: 'solar', label: 'Eclipse solar total', ic: '☀️', phrase: '"Hoy el día se apaga un rato en pleno mediodía."' },
+    { date: '2027-08-16', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' },
+    { date: '2027-08-17', type: 'lunar', label: 'Eclipse lunar penumbral', ic: '🌕', phrase: '"Hoy la Luna se atenúa despacio, casi sin que se note."' }
+  ];
+
+  function todayISO() {
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  }
+
+  function isTuesday() {
+    return new Date().getDay() === 2; // 0=domingo ... 2=martes
+  }
+
+  // ---- guarda el último dato diario del clima, para sol/aviso sin pedir de nuevo ----
+  let lastWeatherDaily = null;
+
+  function getSunriseSunsetText(daily) {
+    if (!daily.sunrise || !daily.sunset) return null;
+    const sr = new Date(daily.sunrise[0]);
+    const ss = new Date(daily.sunset[0]);
+    const fmt = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return `🌅 Amanece ${fmt(sr)}hs · 🌇 Anochece ${fmt(ss)}hs`;
+  }
+
+  function getWeatherAdvisory(daily) {
+    const windMax = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[0] : null;
+    const rainSum = daily.precipitation_sum ? daily.precipitation_sum[0] : null;
+    if (windMax && windMax >= 50) return `💨 Vientos fuertes hoy — ráfagas de hasta ${Math.round(windMax)} km/h`;
+    if (rainSum && rainSum >= 10) return `⛈️ Se esperan ${Math.round(rainSum)}mm de lluvia hoy`;
+    return null;
+  }
+
+  // ---- arma la lista de todo lo que corresponde mostrar hoy ----
+  let secondaryItems = [];
+  let secondaryIndex = 0;
+
+  function isTuesdayMorningWindow() {
+    if (!isTuesday()) return false;
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const afterFiveTwenty = h > 5 || (h === 5 && m >= 20);
+    const beforeEight = h < 8;
+    return afterFiveTwenty && beforeEight;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DÍA DE FIESTA (grupo 1): el panel entero se viste todo el día
+  //  - animación suave según el tema (cae despacio, no molesta)
+  //  - el post-it de la derecha pasa a ser tarjeta de saludo
+  //  - un renglón tenue debajo de la hora en el modo noche
+  //  - el cartel LED intercala el saludo (ver showNextTickerItem)
+  // ═══════════════════════════════════════════════════════════════
+  const temasFiesta = {
+    cumple:    { confeti: true },
+    amor:      { glifos: ['❤️', '💕', '💗'] },
+    navidad:   { glifos: ['❄', '❅', '❆'], nieve: true },
+    anionuevo: { glifos: ['✨', '⭐', '🎉'] },
+    gato:      { glifos: ['🐾'] },
+    estrella:  { glifos: ['✨', '⭐'] }
+  };
+  const coloresConfeti = ['#E8B54D', '#C2694B', '#6FA8D6', '#8FBF8A', '#B4537A', '#F1ECDD'];
+  let temaFiestaActual = null;
+
+  function aplicarFiesta(grupo1) {
+    const principal = grupo1 && grupo1.length ? grupo1[0] : null;
+    const tema = principal ? (principal.tema || 'estrella') : null;
+
+    document.getElementById('nightClockFiesta').textContent =
+      principal ? (principal.listado || principal.texto) + textoEdad(principal, new Date().getFullYear()) : '';
+    document.getElementById('device').classList.toggle('dia-de-fiesta', !!principal);
+
+    if (tema === temaFiestaActual) return; // ya está armada, no la rehacemos cada hora
+    temaFiestaActual = tema;
+
+    const capa = document.getElementById('fiestaLayer');
+    capa.innerHTML = '';
+    if (!tema) return;
+
+    const cfg = temasFiesta[tema] || temasFiesta.estrella;
+    const cantidad = 22;
+    for (let i = 0; i < cantidad; i++) {
+      const el = document.createElement('span');
+      el.className = 'fiesta-p';
+      // repartidos a lo ancho, con velocidades y arranques distintos para que no se vea un patrón
+      el.style.left = ((i * 4.6 + (i % 3) * 1.7) % 100) + '%';
+      el.style.animationDuration = (11 + (i * 7) % 9) + 's';
+      el.style.animationDelay = (-((i * 2.3) % 16)) + 's';
+      if (cfg.confeti) {
+        el.classList.add('confeti');
+        el.style.background = coloresConfeti[i % coloresConfeti.length];
+      } else {
+        el.textContent = cfg.glifos[i % cfg.glifos.length];
+        el.style.fontSize = (14 + (i * 5) % 14) + 'px';
+        if (cfg.nieve) el.classList.add('nieve');
+      }
+      capa.appendChild(el);
+    }
+  }
+
+  function buildSecondaryItems() {
+    const { grupo1, grupo2 } = fechasDeHoy();
+    // la fiesta (animación, post-it, renglón de noche) va aunque la barra muestre el tren
+    aplicarFiesta(grupo1);
+
+    // martes de 5:20 a 8:00, Perla necesita ver el tren de un vistazo — no rota, queda fijo
+    if (isTuesdayMorningWindow()) {
+      secondaryItems = [{ type: 'train' }];
+      return;
+    }
+
+    // si hay algo de familia directa, el saludo se queda FIJO todo el día (el mimo)
+    if (grupo1.length) {
+      // la barra lleva el saludo solo (en una línea); la edad va grande en el post-it de la derecha y en el cartel LED
+      secondaryItems = grupo1.map((f) => ({ type: 'greeting', variant: 'fiesta', text: f.texto }));
+      return;
+    }
+
+    const items = [];
+
+    if (isTuesday()) items.push({ type: 'train' });
+
+    // lo del grupo 2 (cumpleaños de otros, feriados, días varios) sí rota con el resto
+    grupo2.forEach((f) => items.push({
+      type: 'greeting',
+      variant: (f.texto || '').startsWith('🇦🇷') ? 'feriado' : 'otros',
+      text: f.texto
+    }));
+
+    const moonInfo = getMoonPhaseInfo(new Date());
+    const eclipseToday = eclipses.find((e) => e.date === todayISO());
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+
+    if (eclipseToday) {
+      items.push({ type: 'moon', ic: eclipseToday.ic, name: eclipseToday.label });
+      items.push({ type: 'text', text: eclipseToday.phrase });
+    } else {
+      items.push({ type: 'moon', ic: moonInfo.ic, name: moonInfo.name });
+      const pool = moonPhrases[moonInfo.name] || ['"El cielo tiene su propio ritmo, y hoy te acompaña."'];
+      items.push({ type: 'text', text: pool[dayOfYear % pool.length] });
+    }
+
+    if (lastWeatherDaily) {
+      const sunText = getSunriseSunsetText(lastWeatherDaily);
+      if (sunText) {
+        items.push({ type: 'text', text: '🌅 Amanecer y atardecer de hoy' });
+        items.push({ type: 'text', text: sunText });
+      }
+      const advisory = getWeatherAdvisory(lastWeatherDaily);
+      if (advisory) {
+        items.push({ type: 'text', text: '⚠️ Aviso del día' });
+        items.push({ type: 'text', text: advisory });
+      }
+    }
+
+    secondaryItems = items;
+  }
+
+  function renderSecondaryItem(item) {
+    const bar = document.getElementById('secondaryBar');
+    bar.dataset.currentType = item.type;
+    bar.classList.toggle('is-greeting', item.type === 'greeting' && item.variant === 'fiesta');
+    bar.classList.toggle('is-greeting-2', item.type === 'greeting' && item.variant === 'otros');
+    bar.classList.toggle('is-feriado', item.type === 'greeting' && item.variant === 'feriado');
+    // saludos largos: más ancho y letra un poco más chica, para que entren en un renglón
+    bar.classList.toggle('texto-largo', item.type === 'greeting' && (item.text || '').length > 30);
+    // si el tren está interrumpido o con demoras, la barra se destaca sola
+    bar.classList.toggle('is-alert', item.type === 'train' && trainCurrentStatus === 'rojo');
+    bar.classList.toggle('is-warning', item.type === 'train' && trainCurrentStatus === 'amarillo');
+
+    if (item.type === 'train') {
+      bar.innerHTML = `
+        <div class="ic">🚆</div>
+        <div class="train-bar-title">BELGRANO NORTE</div>
+        <div class="train-bar-dot train-${trainCurrentStatus}"></div>
+        <div class="train-bar-status">${trainStatusLabel}</div>
+      `;
+    } else if (item.type === 'moon') {
+      bar.innerHTML = `<span class="ic">${item.ic}</span><span class="train-bar-title">${item.name}</span>`;
+    } else if (item.type === 'greeting') {
+      bar.innerHTML = item.variant === 'feriado'
+        ? `<span class="feriado-sol">☀️</span><span class="greeting-text">${item.text.replace(/^🇦🇷\s*/, '')}</span>`
+        : `<span class="greeting-text">${item.text}</span>`;
+    } else {
+      bar.innerHTML = `<span class="secondary-text">${item.text}</span>`;
+    }
+  }
+
+  function rotateSecondary() {
+    if (!secondaryItems.length) return;
+    const bar = document.getElementById('secondaryBar');
+    bar.style.opacity = 0;
+    setTimeout(() => {
+      secondaryIndex = (secondaryIndex + 1) % secondaryItems.length;
+      renderSecondaryItem(secondaryItems[secondaryIndex]);
+      bar.style.opacity = 1;
+    }, 500);
+  }
+
+  buildSecondaryItems();
+  if (secondaryItems.length) renderSecondaryItem(secondaryItems[0]);
+  setInterval(rotateSecondary, 1000 * 15); // 15 seg por ítem
+  setInterval(buildSecondaryItems, 1000 * 60 * 60); // rearma la lista cada hora
+
+
+
+  async function tryFetchTrain(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function loadTrainStatus() {
+    const pageUrl = 'https://www.argentina.gob.ar/transporte/trenes-argentinos/modificaciones-en-el-servicio-y-novedades';
+    const proxies = [
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(pageUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(pageUrl),
+      'https://corsproxy.io/?url=' + encodeURIComponent(pageUrl)
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const html = await tryFetchTrain(proxyUrl);
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const bodyText = doc.body.textContent.replace(/\s+/g, ' ');
+        const bodyLower = bodyText.toLowerCase();
+        // buscamos "línea belgrano norte" (con o sin tilde) —
+        // el nombre suelto choca con calles/plazas en cualquier barrio
+        let idx = bodyLower.indexOf('línea belgrano norte');
+        if (idx === -1) idx = bodyLower.indexOf('linea belgrano norte');
+        if (idx === -1) idx = bodyLower.indexOf('belgrano norte'); // respaldo, un poco menos preciso
+
+        let status = 'verde';
+        let detail = 'No aparece ninguna novedad activa para la línea Belgrano Norte: circularía con normalidad.';
+
+        if (idx !== -1) {
+          const context = bodyText.substring(Math.max(0, idx - 50), idx + 350);
+          const contextLower = context.toLowerCase();
+          if (contextLower.includes('interrump') || contextLower.includes('suspend')) {
+            status = 'rojo';
+          } else if (contextLower.includes('demora') || contextLower.includes('limitad') || contextLower.includes('modificac') || contextLower.includes('obras')) {
+            status = 'amarillo';
+          }
+          detail = context.trim();
+        }
+
+        applyTrainStatus(status, detail);
+        return;
+      } catch (err) {
+        console.warn('Proxy tren falló:', proxyUrl, err.message);
+        continue;
+      }
+    }
+    applyTrainStatus('gris', 'No se pudo consultar el estado en este momento.');
+  }
+
+  function applyTrainStatus(status, detail) {
+    const labels = { verde: 'Circula con normalidad', amarillo: 'Con demoras/obras', rojo: 'Interrumpido', gris: 'Sin datos ahora' };
+    trainCurrentStatus = status;
+    trainStatusLabel = labels[status];
+    trainDetailText = detail;
+    // si el tren se está mostrando ahora mismo en la barra, lo actualiza al toque
+    if (document.getElementById('secondaryBar').dataset.currentType === 'train') {
+      renderSecondaryItem({ type: 'train' });
+    }
+  }
+
+  document.getElementById('secondaryBar').addEventListener('click', () => {
+    if (document.getElementById('secondaryBar').dataset.currentType !== 'train') return;
+    singleDetailCard.style.background = 'var(--cream)';
+    document.getElementById('d-icon').textContent = '🚆';
+    document.getElementById('d-cat').textContent = 'Tren Belgrano Norte';
+    document.getElementById('d-cat').style.background = 'rgba(43,34,16,0.08)';
+    const dTime = document.getElementById('d-time');
+    dTime.classList.remove('hidden');
+    dTime.textContent = trainStatusLabel;
+    document.getElementById('d-title').textContent = 'Línea Belgrano Norte';
+    const dDescTren = document.getElementById('d-desc');
+    dDescTren.textContent = trainDetailText;
+    dDescTren.style.display = 'block';
+    const dWhoTren = document.getElementById('d-who');
+    dWhoTren.textContent = 'Fuente: argentina.gob.ar';
+    dWhoTren.style.display = 'block';
+    document.getElementById('groupDetailRow').style.display = 'none';
+    document.getElementById('singleDetailCard').style.display = 'block';
+    overlay.classList.add('show');
+  });
+
+  if (isTuesday()) loadTrainStatus();
+  setInterval(() => { if (!nightModeActive && isTuesday()) loadTrainStatus(); }, 1000 * 60 * 15); // solo martes, pausado de noche
+
+  // ---- pendientes de hoy/mañana: datos reales de CasaHub vía Cloud Function ----
+  const CASAHUB_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getTodayItems';
+
+  const typeStyle = {
+    activity: { bg: 'var(--sky)', cat: 'Actividad', icon: '📅' },
+    discount: { bg: 'var(--sage)', cat: 'Descuento', icon: '🛒' },
+    reminder: { bg: 'var(--mustard)', cat: 'Finanzas', icon: '💳' },
+    schoolTask: { bg: 'var(--teal)', cat: 'Colegio', icon: '📚' },
+    healthAppointment: { bg: 'var(--lilac)', cat: 'Salud', icon: '🏥' }
+  };
+
+  const categoryOrder = ['activity', 'healthAppointment', 'schoolTask', 'reminder', 'discount'];
+  const rotations = ['-1.6deg', '1.2deg', '-0.8deg', '1.4deg', '-1.1deg'];
+
+  // "today" o "tomorrow" según la Cloud Function (a partir de las 21 muestra lo de mañana)
+  let modoPendientes = 'today';
+  let diaPendientes = '';
+
+  // ---- un color por persona (el mismo en tarjetas, pilas y semana) ----
+  const personas = [
+    { claves: ['gustavo', 'gus'], nombre: 'Gustavo', color: 'var(--p-gustavo)' },
+    { claves: ['perla'], nombre: 'Perla', color: 'var(--p-perla)' },
+    { claves: ['lorenzo', 'lolo'], nombre: 'Lorenzo', color: 'var(--p-lorenzo)' }
+  ];
+  function personaDe(texto) {
+    if (!texto) return null;
+    const t = texto.toLowerCase();
+    return personas.find((p) => p.claves.some((k) => t.split(/[\s,]+/).includes(k))) || null;
+  }
+  // chip con el puntito de color si es alguien de la casa; si no (materia, tarjeta), chip neutro
+  function whoChip(texto) {
+    if (!texto) return '';
+    const p = personaDe(texto);
+    if (p) return `<span class="who-chip" style="--pc:${p.color}">${p.nombre}</span>`;
+    return `<span class="who-chip plain">${texto}</span>`;
+  }
+
+  // "Mié 08/10 10:30" → { wd: 'Mié', dd: '08', mm: '10', hora: '10:30' }
+  function partirFecha(texto) {
+    if (!texto) return null;
+    const m = texto.match(/^([A-Za-zÁÉÍÓÚáéíóú]{3})\s+(\d{2})\/(\d{2})(?:\s+(.+))?$/);
+    if (!m) return null;
+    return { wd: m[1], dd: m[2], mm: m[3], hora: m[4] ? normalizarHora(m[4]) : '' };
+  }
+  function fechaCorta(texto) {
+    const f = partirFecha(texto);
+    if (!f) return normalizarHora(texto || '');
+    return `${f.wd.toLowerCase()} ${parseInt(f.dd, 10)}${f.hora ? ' · ' + f.hora : ''}`;
+  }
+
+  function cabecera(style, extra = '') {
+    return `<div class="note-head"><span class="note-ic">${style.icon}</span><span>${style.cat}</span>${extra}</div>`;
+  }
+
+  function buildSingleNote(type, entry, index) {
+    const style = typeStyle[type];
+    const note = document.createElement('div');
+    const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entry.time && entry.time.includes(todayDDMM());
+    const venceYa = type === 'reminder' && /^vence (hoy|mañana)/i.test(entry.time || '');
+    note.className = 'note dynamic-pending' + (esHoy || venceYa ? ' has-today' : '');
+    note.style.background = entry.done ? 'var(--sage)' : style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+    note.dataset.cat = style.cat;
+    note.dataset.type = type;
+    note.dataset.time = entry.time;
+    note.dataset.title = entry.title;
+    note.dataset.desc = entry.desc || '';
+    // si "quién" es lo mismo que la categoría (ej. Finanzas/Finanzas) no lo repetimos
+    note.dataset.who = entry.who && entry.who !== style.cat ? entry.who : '';
+
+    const badge = esHoy ? '<div class="note-today-badge">HOY</div>'
+      : venceYa ? `<div class="note-today-badge">${entry.time.toUpperCase()}</div>` : '';
+
+    let cuerpo;
+    if (type === 'discount' && /^(\d+%)\s+en\s+(.+)$/i.test(entry.title)) {
+      const [, pct, comercio] = entry.title.match(/^(\d+%)\s+en\s+(.+)$/i);
+      cuerpo = `
+        <div class="discount-pct">${pct}</div>
+        <div class="discount-store">${comercio}</div>`;
+    } else if (type === 'reminder') {
+      cuerpo = `
+        <div class="note-title">${entry.title}</div>
+        ${venceYa ? '' : `<div class="note-who">${entry.time || ''}</div>`}`;
+    } else {
+      const cuando = (type === 'schoolTask' || type === 'healthAppointment')
+        ? fechaCorta(entry.time) : normalizarHora(entry.time || '');
+      cuerpo = `
+        ${cuando ? `<div class="note-time">${cuando}</div>` : ''}
+        <div class="note-title">${entry.title}</div>`;
+    }
+
+    const pie = note.dataset.who ? `<div class="note-foot">${whoChip(note.dataset.who)}</div>` : '';
+
+    note.innerHTML = `
+      <div class="note-tape"></div>
+      ${badge}
+      ${cabecera(style)}
+      <div class="note-body">${cuerpo}</div>
+      ${pie}
+    `;
+    return note;
+  }
+
+  // La app deja escribir la hora libre, así que llegan formatos mezclados
+  // ("0800", "8:30", "18.00"). Acá los emparejamos todos a HH:MM.
+  function normalizarHora(texto) {
+    if (!texto) return texto;
+    return texto.replace(/(\d{1,2})[.:]?(\d{2})(?!\d)/g, (match, h, m) => {
+      const hh = String(parseInt(h, 10)).padStart(2, '0');
+      return `${hh}:${m}`;
+    });
+  }
+
+  function todayDDMM() {
+    const now = new Date();
+    return String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+
+  // lo que se lee abajo de cada pila, para no tener que tocar para saber qué viene
+  function resumenDePila(type, entries) {
+    if (type === 'discount') {
+      const partes = entries.slice(0, 2).map((e) => {
+        const m = (e.title || '').match(/^(\d+%)\s+en\s+(.+)$/i);
+        return m ? `<b>${m[1]}</b> ${m[2]}` : `<b>${e.title}</b>`;
+      });
+      return partes.join(' · ') + (entries.length > 2 ? ' …' : '');
+    }
+    const pendiente = entries.find((e) => !e.done) || entries[0];
+    const cuando = (type === 'schoolTask' || type === 'healthAppointment')
+      ? fechaCorta(pendiente.time) : normalizarHora(pendiente.time || '');
+    const titulo = (pendiente.title || '').replace(/^✅\s*/, '');
+    return `Próximo: <b>${titulo}</b>${cuando ? ' · ' + cuando : ''}`;
+  }
+
+  function buildGroupedNote(type, entries, index) {
+    const style = typeStyle[type];
+    const note = document.createElement('div');
+    const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
+      entries.some((e) => e.time && e.time.includes(todayDDMM()));
+    note.className = 'note dynamic-pending grouped' + (hayHoy ? ' has-today' : '');
+    note.style.background = style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+
+    const listText = entries
+      .map((e) => `${style.icon} ${e.title}${e.who ? ' — ' + e.who : ''}${e.time ? ' (' + e.time + ')' : ''}`)
+      .join('\n');
+
+    note.dataset.cat = style.cat;
+    note.dataset.type = type;
+    note.dataset.time = style.cat;
+    note.dataset.title = `${entries.length} ${style.cat.toLowerCase()}s`;
+    note.dataset.desc = listText;
+    note.dataset.who = style.cat;
+    // todas las categorías agrupadas usan el modo de post-its individuales
+    note.dataset.entriesJson = JSON.stringify({ type, entries });
+
+    // nombre en plural según la categoría, para que el número grande tenga contexto
+    const plurales = {
+      healthAppointment: 'turnos médicos',
+      schoolTask: 'tareas',
+      discount: 'descuentos',
+      activity: 'actividades',
+      reminder: 'pagos'
+    };
+    const etiqueta = plurales[type] || style.cat.toLowerCase();
+
+    note.innerHTML = `
+      <div class="note-tape"></div>
+      ${hayHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+      ${cabecera(style, '<span class="note-more">›</span>')}
+      <div class="note-body">
+        <div class="note-bignum">${entries.length}</div>
+        <div class="note-bignum-label">${etiqueta}</div>
+      </div>
+      <div class="note-foot">${resumenDePila(type, entries)}</div>
+    `;
+    return note;
+  }
+
+  // los textos dicen "hoy" o "mañana" según lo que esté mostrando el panel
+  function textoVacio(type) {
+    const cuando = modoPendientes === 'tomorrow' ? 'mañana' : 'hoy';
+    return {
+      discount: `Sin descuentos ${cuando}`,
+      schoolTask: 'Todo listo, sin tareas',
+      healthAppointment: 'Sin turnos pendientes'
+    }[type];
+  }
+  const emptyMessages = { discount: true, schoolTask: true, healthAppointment: true };
+
+  function buildEmptyNote(type, index) {
+    const style = typeStyle[type];
+    const note = document.createElement('div');
+    note.className = 'note dynamic-pending is-empty';
+    note.style.background = style.bg;
+    note.style.transform = `rotate(${rotations[index % rotations.length]})`;
+    note.innerHTML = `
+      <div class="note-tape"></div>
+      ${cabecera(style)}
+      <div class="note-body"><div class="note-title">✓ ${textoVacio(type)}</div></div>
+    `;
+    return note;
+  }
+
+  function buildCategoryNotes(categories) {
+    const notes = [];
+    let index = 0;
+    categoryOrder.forEach((type) => {
+      const entries = categories[type] || [];
+      if (!entries.length) {
+        // solo mostramos tarjeta de "vacío" para las categorías que definimos con mensaje propio
+        if (emptyMessages[type]) {
+          notes.push(buildEmptyNote(type, index));
+          index++;
+        }
+        return;
+      }
+      if (entries.length === 1) {
+        notes.push(buildSingleNote(type, entries[0], index));
+      } else {
+        notes.push(buildGroupedNote(type, entries, index));
+      }
+      index++;
+    });
+    return notes;
+  }
+
+  // después de las 21 el panel muestra lo de mañana: el sello del medio lo avisa
+  function actualizarSelloModo() {
+    const sello = document.getElementById('pendingLabel');
+    if (!sello) return;
+    if (modoPendientes === 'tomorrow') {
+      sello.textContent = `🌙 Lo de mañana${diaPendientes ? ', ' + diaPendientes : ''}`;
+      sello.classList.add('is-tomorrow');
+    } else {
+      sello.textContent = '🏠 CasaHub Loureiro-Sánchez';
+      sello.classList.remove('is-tomorrow');
+    }
+  }
+
+  async function loadPendingToday() {
+    const loadingNote = document.getElementById('pendingLoading');
+    try {
+      const res = await fetch(CASAHUB_FUNCTION_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const categories = data.categories || {};
+      ultimasCategorias = categories; // guardamos para la vista semanal
+      modoPendientes = data.mode === 'tomorrow' ? 'tomorrow' : 'today';
+      diaPendientes = data.dayLabel || '';
+      actualizarSelloModo();
+
+      if (loadingNote) loadingNote.remove();
+
+      // Borra las tarjetas de la consulta anterior antes de poner las nuevas
+      document.querySelectorAll('.dynamic-pending').forEach((el) => el.remove());
+
+      const notes = buildCategoryNotes(categories);
+      const notesRow = document.getElementById('notes');
+
+      if (!notes.length) {
+        const empty = document.createElement('div');
+        empty.className = 'note dynamic-pending is-empty';
+        empty.style.background = 'var(--cream)';
+        empty.innerHTML = `<div class="note-tape"></div><div class="note-head"><span class="note-ic">🏠</span><span>${data.mode === 'tomorrow' ? 'Mañana' : 'Hoy'}</span></div><div class="note-body"><div class="note-title">Nada pendiente 🎉</div></div>`;
+        notesRow.appendChild(empty);
+        return;
+      }
+
+      notes.forEach((note) => notesRow.appendChild(note));
+    } catch (err) {
+      console.warn('No se pudo cargar CasaHub:', err.message);
+      if (loadingNote) {
+        loadingNote.querySelector('.note-title').textContent = 'Sin conexión';
+        loadingNote.querySelector('.note-who').textContent = 'CasaHub';
+      }
+    }
+  }
+
+  loadPendingToday(); // carga al abrir el panel
+  setInterval(() => { if (!nightModeActive) loadPendingToday(); }, 1000 * 60 * 30); // y refresca cada 30 min, pausado de noche
+
+  // además, un pedido puntual justo a las 21:00 en punto (hora del celu),
+  // para que el switch hoy/mañana no dependa de en qué momento del
+  // ciclo de 30 min caiga
+  function scheduleExact21() {
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(21, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1); // ya pasó, programar para mañana
+    setTimeout(() => {
+      loadPendingToday();
+      scheduleExact21(); // se reprograma solo para el día siguiente
+    }, target - now);
+  }
+  scheduleExact21();
+
+  // ---- radio en vivo: Mega 98.3, toggle simple play/pausa ----
+  const MEGA_URL = 'https://mega.stweb.tv/mega983/live/playlist.m3u8';
+  let hlsInstance = null;
+  let radioPlaying = false;
+  const radioAudio = document.getElementById('radioAudio');
+
+  function playMega() {
+    if (window.Hls && Hls.isSupported()) {
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(MEGA_URL);
+      hlsInstance.attachMedia(radioAudio);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => radioAudio.play().catch(() => {}));
+    } else {
+      radioAudio.src = MEGA_URL;
+      radioAudio.play().catch(() => {});
+    }
+    radioPlaying = true;
+    document.getElementById('radioMiniIcon').textContent = '⏸';
+    document.getElementById('radioNoteBtn').classList.add('playing');
+  }
+
+  function stopMega() {
+    radioAudio.pause();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    radioPlaying = false;
+    document.getElementById('radioMiniIcon').textContent = '📻';
+    document.getElementById('radioNoteBtn').classList.remove('playing');
+  }
+
+  document.getElementById('radioNoteBtn').addEventListener('click', () => {
+    if (radioPlaying) stopMega(); else playMega();
+  });
+
+  // ---- TN en vivo, canal oficial de YouTube, ventanita flotante ----
+  const TN_CHANNEL_ID = 'UCj6PcyLvpnIRT_2W_mwa9Aw';
+  const tvWindow = document.getElementById('tvWindow');
+  const tvIframe = document.getElementById('tvIframe');
+  const tvMini = document.getElementById('tvMini');
+  let tvOn = false;
+
+  function playTV() {
+    tvIframe.src = `https://www.youtube.com/embed/live_stream?channel=${TN_CHANNEL_ID}&autoplay=1`;
+    tvWindow.classList.add('show');
+    tvMini.classList.add('playing');
+    tvOn = true;
+  }
+
+  function stopTV() {
+    tvIframe.src = ''; // corta la reproducción, no solo la esconde
+    tvWindow.classList.remove('show');
+    tvMini.classList.remove('playing');
+    tvOn = false;
+  }
+
+  tvMini.addEventListener('click', () => {
+    if (tvOn) stopTV(); else playTV();
+  });
+  document.getElementById('tvClose').addEventListener('click', stopTV);
+  tvWindow.addEventListener('click', (e) => {
+    if (!e.target.closest('.tv-frame')) stopTV();
+  });
+
+  // ---- Cámaras: abre la app de EZVIZ (com.ezviz) a pantalla completa ----
+  // Se vuelve al panel con "atrás". Dos formas de abrirla:
+  //  1) fully.startApplication → solo existe con Fully PLUS
+  //  2) link "intent:" de Android → versión gratis. Si por algo falla,
+  //     el fallback recarga el mismo panel en vez de dejar una página de error.
+  const EZVIZ_PACKAGE = 'com.ezviz';
+  const camBtn = document.getElementById('camBtn');
+
+  function abrirCamaras() {
+    if (radioPlaying) stopMega();   // que no quede la radio sonando por detrás
+    if (tvOn) stopTV();
+    camBtn.classList.add('abriendo');
+    setTimeout(() => camBtn.classList.remove('abriendo'), 4000);
+
+    try {
+      if (window.fully && typeof window.fully.startApplication === 'function') {
+        window.fully.startApplication(EZVIZ_PACKAGE);
+        return;
+      }
+    } catch (e) { /* sin PLUS: seguimos con el intent */ }
+
+    const volver = encodeURIComponent(location.href);
+    window.location.href =
+      'intent:#Intent;action=android.intent.action.MAIN;' +
+      'category=android.intent.category.LAUNCHER;' +
+      `package=${EZVIZ_PACKAGE};S.browser_fallback_url=${volver};end`;
+  }
+
+  camBtn.addEventListener('click', abrirCamaras);
+
+  // al volver de EZVIZ, poner la hora al día de una (no esperar al próximo tick)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      camBtn.classList.remove('abriendo');
+      tick();
+    }
+  });
+
+  // arranque de los post-its laterales (acá abajo porque necesita las tablas de fechas ya cargadas)
+  postItsListos = true;
+  renderEfemeride();
+  showNextTickerItem();
+
+</script>
+
+</body>
+</html>
