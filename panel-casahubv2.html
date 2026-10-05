@@ -1774,6 +1774,58 @@
     color: #8a3b22;
     margin-top: 4px;
   }
+
+  /* ---- MAÑANA: azul (distinto del rojo de HOY) ---- */
+  .note-today-badge.is-tomorrow { background: #3D6B8C; }
+  .note.has-tomorrow {
+    box-shadow: 6px 12px 26px rgba(0,0,0,0.32), 0 0 0 4px rgba(61,107,140,0.85);
+  }
+
+  /* ---- tarjeta de un pago: ícono + nombre grande + cuándo pagar ---- */
+  .pago-ic { font-size: 40px; line-height: 1; margin-top: 2px; }
+  .note-title.pago-titulo { font-size: 40px; margin-top: 6px; }
+  .pago-pill {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    background: rgba(255,255,255,0.55);
+    border-radius: 20px;
+    padding: 5px 14px;
+  }
+  .pago-pill.is-urgente { background: var(--brick); color: #fff; }
+
+  /* ---- MODO ATARDECER: todo más tibio y más tenue, de a poco ---- */
+  .device {
+    /* el cambio de luz tarda 15 minutos: no se nota el salto */
+    transition: filter 900s linear;
+  }
+  .device.modo-atardecer {
+    filter: sepia(0.28) saturate(0.85) brightness(0.8);
+  }
+  .device.modo-atardecer-2 {
+    filter: sepia(0.36) saturate(0.78) brightness(0.66);
+  }
+  /* luz ámbar por encima, como una lámpara de mesa */
+  .device::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,170,90,0.10), rgba(255,140,60,0.16));
+    mix-blend-mode: multiply;
+    opacity: 0;
+    transition: opacity 900s linear;
+    z-index: 4;
+  }
+  .device.modo-atardecer::after { opacity: 1; }
+  /* más calma: el cartel pasa más despacio y más tenue, las animaciones se aquietan */
+  .device.modo-atardecer .news-text { animation-duration: 80s; opacity: 0.8; }
+  .device.modo-atardecer .fiesta-p { opacity: 0.45; }
+  .device.modo-atardecer #secondaryBar.is-greeting { animation-duration: 12s; }
+  .device.modo-atardecer #secondaryBar .secondary-text { font-size: 23px; }
 </style>
 </head>
 <body>
@@ -1993,9 +2045,23 @@
   const weekdays = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
+  // ---- MODO ATARDECER (21:00 → 23:00): el panel se entibia y se calma antes del modo noche ----
+  // 0 = día · 1 = atardecer (21:00–22:30) · 2 = más calma (22:30–23:00)
+  // va acá arriba a propósito: tick() lo usa apenas arranca el panel
+  let atardecerNivel = 0;
+  function nivelAtardecer() {
+    const now = new Date();
+    const min = now.getHours() * 60 + now.getMinutes();
+    if (min >= 22 * 60 + 30 && min < 23 * 60) return 2;
+    if (min >= 21 * 60 && min < 23 * 60) return 1;
+    return 0;
+  }
+
   function tick(){
     const now = new Date();
-    document.getElementById('weekday').textContent = weekdays[now.getDay()];
+    // de noche, el día de la semana viene con un "buenas noches" chiquito
+    document.getElementById('weekday').textContent =
+      weekdays[now.getDay()] + (atardecerNivel ? ' · buenas noches' : '');
     document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
     document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
     document.getElementById('nightClockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
@@ -2070,7 +2136,8 @@
 
       entries.forEach((entry, i) => {
         const esHoy = entry.time && entry.time.includes(today);
-        const esProximo = i === idxProximo;
+        const esManiana = !esHoy && entry.time && entry.time.includes(tomorrowDDMM());
+        const esProximo = i === idxProximo && !esManiana;
         const card = document.createElement('div');
         card.className = `full-postit group-item-postit ${sizeClass}${esProximo ? ' is-next' : ''}${entry.done ? ' is-done' : ''}`;
         card.style.background = style.bg; // color propio de la categoría
@@ -2094,6 +2161,7 @@
 
         card.innerHTML = `
           ${esHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+          ${esManiana ? '<div class="note-today-badge is-tomorrow">MAÑANA</div>' : ''}
           ${esProximo ? '<div class="note-next-badge">PRÓXIMO</div>' : ''}
           ${arriba}
           <div class="detail-title">${titulo}</div>
@@ -3499,7 +3567,8 @@
 
     const items = [];
 
-    if (isTuesday()) items.push({ type: 'train' });
+    // a la noche el tren ya no hace falta
+    if (isTuesday() && !atardecerNivel) items.push({ type: 'train' });
 
     // lo del grupo 2 (cumpleaños de otros, feriados, días varios) sí rota con el resto
     grupo2.forEach((f) => items.push({
@@ -3519,6 +3588,15 @@
       items.push({ type: 'moon', ic: moonInfo.ic, name: moonInfo.name });
       const pool = moonPhrases[moonInfo.name] || ['"El cielo tiene su propio ritmo, y hoy te acompaña."'];
       items.push({ type: 'text', text: pool[dayOfYear % pool.length] });
+    }
+
+    if (atardecerNivel) {
+      // modo atardecer: luna + frases para ir a dormir (3 por noche, cambian cada día)
+      for (let k = 0; k < 3; k++) {
+        items.push({ type: 'text', text: frasesDeDormir[(dayOfYear * 3 + k) % frasesDeDormir.length] });
+      }
+      secondaryItems = items;
+      return;
     }
 
     if (lastWeatherDaily) {
@@ -3733,10 +3811,15 @@
   function buildSingleNote(type, entry, index) {
     const style = typeStyle[type];
     const note = document.createElement('div');
-    const esHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
-      entry.time && entry.time.includes(todayDDMM());
-    const venceYa = type === 'reminder' && /^vence (hoy|mañana)/i.test(entry.time || '');
-    note.className = 'note dynamic-pending' + (esHoy || venceYa ? ' has-today' : '');
+    const conFecha = type === 'schoolTask' || type === 'healthAppointment';
+    const esHoy = conFecha && entry.time && entry.time.includes(todayDDMM());
+    const esManiana = conFecha && !esHoy && entry.time && entry.time.includes(tomorrowDDMM());
+    const venceHoy = type === 'reminder' && /^vence hoy/i.test(entry.time || '');
+    const venceManiana = type === 'reminder' && /^vence mañana/i.test(entry.time || '');
+    const venceYa = venceHoy || venceManiana;
+    note.className = 'note dynamic-pending'
+      + (esHoy || venceHoy ? ' has-today' : '')
+      + (esManiana || venceManiana ? ' has-tomorrow' : '');
     note.style.background = entry.done ? 'var(--sage)' : style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
     note.dataset.cat = style.cat;
@@ -3748,7 +3831,9 @@
     note.dataset.who = entry.who && entry.who !== style.cat ? entry.who : '';
 
     const badge = esHoy ? '<div class="note-today-badge">HOY</div>'
-      : venceYa ? `<div class="note-today-badge">${entry.time.toUpperCase()}</div>` : '';
+      : esManiana ? '<div class="note-today-badge is-tomorrow">MAÑANA</div>'
+      : venceHoy ? `<div class="note-today-badge">${entry.time.toUpperCase()}</div>`
+      : venceManiana ? `<div class="note-today-badge is-tomorrow">${entry.time.toUpperCase()}</div>` : '';
 
     let cuerpo;
     if (type === 'discount' && /^(\d+%)\s+en\s+(.+)$/i.test(entry.title)) {
@@ -3757,9 +3842,12 @@
         <div class="discount-pct">${pct}</div>
         <div class="discount-store">${comercio}</div>`;
     } else if (type === 'reminder') {
+      // ícono según el servicio + nombre grande + cuándo hay que pagarlo
+      const cuandoPagar = venceHoy ? 'Pagar hoy' : venceManiana ? 'Pagar mañana' : (entry.time || '');
       cuerpo = `
-        <div class="note-title">${entry.title}</div>
-        ${venceYa ? '' : `<div class="note-who">${entry.time || ''}</div>`}`;
+        <div class="pago-ic">${iconoServicio(entry.title)}</div>
+        <div class="note-title pago-titulo">${entry.title}</div>
+        ${cuandoPagar ? `<div class="pago-pill${venceHoy ? ' is-urgente' : ''}">${cuandoPagar}</div>` : ''}`;
     } else {
       const cuando = (type === 'schoolTask' || type === 'healthAppointment')
         ? fechaCorta(entry.time) : normalizarHora(entry.time || '');
@@ -3790,6 +3878,33 @@
     });
   }
 
+  function tomorrowDDMM() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  // ícono según el nombre del pago (si no reconoce nada, una boleta)
+  function iconoServicio(nombre) {
+    const n = (nombre || '').toLowerCase();
+    const tabla = [
+      [['luz', 'edenor', 'edesur', 'electric'], '💡'],
+      [['gas', 'metrogas', 'naturgy'], '🔥'],
+      [['agua', 'aysa'], '💧'],
+      [['internet', 'wifi', 'fibra', 'telecentro', 'fibertel'], '📶'],
+      [['celular', 'telefono', 'teléfono', 'movistar', 'claro', 'personal'], '📱'],
+      [['alquiler', 'expensas'], '🏠'],
+      [['tarjeta', 'visa', 'master', 'amex'], '💳'],
+      [['seguro'], '🛡️'],
+      [['colegio', 'cuota', 'escuela'], '🎒'],
+      [['prepaga', 'swiss', 'osde', 'obra social'], '🩺'],
+      [['netflix', 'spotify', 'disney', 'youtube', 'max', 'streaming'], '📺'],
+      [['abl', 'municipal', 'impuesto', 'arba', 'patente'], '🏛️']
+    ];
+    const hit = tabla.find(([claves]) => claves.some((k) => n.includes(k)));
+    return hit ? hit[1] : '🧾';
+  }
+
   function todayDDMM() {
     const now = new Date();
     return String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0');
@@ -3814,9 +3929,10 @@
   function buildGroupedNote(type, entries, index) {
     const style = typeStyle[type];
     const note = document.createElement('div');
-    const hayHoy = (type === 'schoolTask' || type === 'healthAppointment') &&
-      entries.some((e) => e.time && e.time.includes(todayDDMM()));
-    note.className = 'note dynamic-pending grouped' + (hayHoy ? ' has-today' : '');
+    const conFechaG = type === 'schoolTask' || type === 'healthAppointment';
+    const hayHoy = conFechaG && entries.some((e) => e.time && e.time.includes(todayDDMM()));
+    const hayManiana = conFechaG && !hayHoy && entries.some((e) => e.time && e.time.includes(tomorrowDDMM()));
+    note.className = 'note dynamic-pending grouped' + (hayHoy ? ' has-today' : '') + (hayManiana ? ' has-tomorrow' : '');
     note.style.background = style.bg;
     note.style.transform = `rotate(${rotations[index % rotations.length]})`;
 
@@ -3846,6 +3962,7 @@
     note.innerHTML = `
       <div class="note-tape"></div>
       ${hayHoy ? '<div class="note-today-badge">HOY</div>' : ''}
+      ${hayManiana ? '<div class="note-today-badge is-tomorrow">MAÑANA</div>' : ''}
       ${cabecera(style, '<span class="note-more">›</span>')}
       <div class="note-body">
         <div class="note-bignum">${entries.length}</div>
@@ -4065,6 +4182,44 @@
   });
 
   // arranque de los post-its laterales (acá abajo porque necesita las tablas de fechas ya cargadas)
+  // ---- frases de buenas noches (modo atardecer) ----
+  // (se declaran como var para que existan aunque buildSecondaryItems corra antes de esta línea)
+  var frasesDeDormir = [
+    '"Lo que no se hizo hoy, mañana tiene su lugar."',
+    '"La casa ya descansa. Vos también."',
+    '"Un buen día termina en una buena almohada."',
+    '"Hoy ya alcanzó. Mañana será otro día."',
+    '"El mate de mañana te espera."',
+    '"Que el último pensamiento del día sea lindo."',
+    '"Las pantallas se apagan, los sueños se prenden."',
+    '"Lo importante ya está en casa."',
+    '"Respirá hondo: el día terminó."',
+    '"Lo pendiente puede esperar; el descanso no."',
+    '"Buenas noches a todos los de esta casa."',
+    '"Apagá de a poco, que mañana se arranca de nuevo."',
+    '"Dormir bien también es cuidarse."',
+    '"Mañana el sol sale igual, aunque te acuestes temprano."'
+  ];
+
+  function aplicarAtardecer(forzar) {
+    const nivel = nivelAtardecer();
+    if (nivel === atardecerNivel && !forzar) return;
+    const cambioDeModo = (nivel > 0) !== (atardecerNivel > 0);
+    atardecerNivel = nivel;
+    const device = document.getElementById('device');
+    device.classList.toggle('modo-atardecer', nivel >= 1);
+    device.classList.toggle('modo-atardecer-2', nivel === 2);
+    tick();
+    // al entrar o salir del atardecer, la barra del medio cambia de contenido al toque
+    if (cambioDeModo || forzar) {
+      buildSecondaryItems();
+      secondaryIndex = 0;
+      if (secondaryItems.length) renderSecondaryItem(secondaryItems[0]);
+    }
+  }
+  aplicarAtardecer(true);
+  setInterval(() => aplicarAtardecer(false), 1000 * 60); // revisa cada minuto
+
   postItsListos = true;
   renderEfemeride();
   showNextTickerItem();
