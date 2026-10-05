@@ -4036,12 +4036,12 @@
     if (!e.target.closest('.tv-frame')) stopTV();
   });
 
-  // ---- Cámaras: abre la app de EZVIZ (com.ezviz) a pantalla completa ----
-  // Se vuelve al panel con "atrás". Dos formas de abrirla:
-  //  1) fully.startApplication → solo existe con Fully PLUS
-  //  2) link "intent:" de Android → versión gratis. Si por algo falla,
-  //     el fallback recarga el mismo panel en vez de dejar una página de error.
-  const EZVIZ_PACKAGE = 'com.ezviz';
+  // ---- Cámaras: abre la app de EZVIZ a pantalla completa ----
+  // Se vuelve al panel con "atrás". Fully gratis abre otras apps solo si el link
+  // dice la pantalla EXACTA de la app (el "componente"), sacado de
+  // Fully → Universal Launcher → EZVIZ → ✏️:  com.ezviz/.main.LoadingActivity
+  // launchFlags=0x10000000 = "abrila como app aparte" (NEW_TASK)
+  const EZVIZ_COMPONENT = 'com.ezviz/com.ezviz.main.LoadingActivity';
   const camBtn = document.getElementById('camBtn');
 
   function abrirCamaras() {
@@ -4050,18 +4050,8 @@
     camBtn.classList.add('abriendo');
     setTimeout(() => camBtn.classList.remove('abriendo'), 4000);
 
-    try {
-      if (window.fully && typeof window.fully.startApplication === 'function') {
-        window.fully.startApplication(EZVIZ_PACKAGE);
-        return;
-      }
-    } catch (e) { /* sin PLUS: seguimos con el intent */ }
-
-    const volver = encodeURIComponent(location.href);
     window.location.href =
-      'intent:#Intent;action=android.intent.action.MAIN;' +
-      'category=android.intent.category.LAUNCHER;' +
-      `package=${EZVIZ_PACKAGE};S.browser_fallback_url=${volver};end`;
+      `intent:#Intent;launchFlags=0x10000000;component=${EZVIZ_COMPONENT};end`;
   }
 
   camBtn.addEventListener('click', abrirCamaras);
