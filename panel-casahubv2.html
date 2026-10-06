@@ -1797,35 +1797,135 @@
   }
   .pago-pill.is-urgente { background: var(--brick); color: #fff; }
 
-  /* ---- MODO ATARDECER: todo más tibio y más tenue, de a poco ---- */
-  .device {
-    /* el cambio de luz tarda 15 minutos: no se nota el salto */
-    transition: filter 900s linear;
-  }
-  .device.modo-atardecer {
-    filter: sepia(0.28) saturate(0.85) brightness(0.8);
-  }
-  .device.modo-atardecer-2 {
-    filter: sepia(0.36) saturate(0.78) brightness(0.66);
-  }
-  /* luz ámbar por encima, como una lámpara de mesa */
-  .device::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(ellipse at 50% 30%, rgba(255,170,90,0.10), rgba(255,140,60,0.16));
-    mix-blend-mode: multiply;
-    opacity: 0;
-    transition: opacity 900s linear;
-    z-index: 4;
-  }
-  .device.modo-atardecer::after { opacity: 1; }
+  /* ---- MODO ATARDECER (si alguien toca la despedida y mira el panel completo) ---- */
   /* más calma: el cartel pasa más despacio y más tenue, las animaciones se aquietan */
   .device.modo-atardecer .news-text { animation-duration: 80s; opacity: 0.8; }
   .device.modo-atardecer .fiesta-p { opacity: 0.45; }
   .device.modo-atardecer #secondaryBar.is-greeting { animation-duration: 12s; }
   .device.modo-atardecer #secondaryBar .secondary-text { font-size: 23px; }
+  .week-refresh { background: rgba(43,34,16,0.18); color: rgba(255,255,255,0.6); }
+
+  /* ═════════ DESPEDIDA DEL DÍA (21:00 → 23:00) ═════════ */
+  #despedida {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: none;
+    opacity: 0;
+    transition: opacity 2.5s ease;
+    color: #d9dfe9;
+    font-family: 'Inter', sans-serif;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1.3px) 0 0/6px 6px,
+      radial-gradient(ellipse at 80% -10%, #1d2b47 0%, #0f1729 55%, #0a0f1c 100%);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  #despedida.show { display: block; }
+  #despedida.visible { opacity: 1; }
+  .desp-wrap { position: absolute; inset: 0; transition: filter 60s linear; }
+  #despedida.nivel-2 .desp-wrap { filter: brightness(0.72); }
+
+  .desp-star {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #cfd8ea; opacity: 0.25;
+    animation: titilar ease-in-out infinite alternate;
+  }
+  @keyframes titilar { from { opacity: 0.08; } to { opacity: 0.45; } }
+
+  .desp-hint { position: absolute; top: 16px; right: 40px; font-size: 14px; color: #55688a; }
+
+  .desp-grid {
+    position: absolute;
+    inset: 46px 56px 112px 56px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 52px;
+  }
+  .desp-left { display: flex; flex-direction: column; min-height: 0; }
+  .desp-hola { font-family: 'Kalam', cursive; font-size: 30px; color: #8fa6c9; }
+  .desp-manana { font-family: 'Kalam', cursive; font-size: 56px; font-weight: 700; color: #eef2f8; line-height: 1.05; margin-top: 2px; }
+  .desp-manana span { color: #9fb7dc; }
+  .desp-feriado { margin-top: 8px; font-size: 19px; color: #a9c8ea; }
+  .desp-tit { margin-top: 26px; font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: #7186a8; font-weight: 700; }
+
+  .desp-items { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .desp-item {
+    display: flex; align-items: center; gap: 18px;
+    padding: 13px 20px; border-radius: 16px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(159,183,220,0.12);
+  }
+  .desp-item .ic { font-size: 30px; width: 40px; text-align: center; flex-shrink: 0; }
+  .desp-item .tx { min-width: 0; flex: 1; }
+  .desp-item .t { font-size: 23px; color: #e6ebf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .desp-item .s { font-size: 16px; color: #8fa0bd; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .desp-item .s .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .desp-item .h { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 23px; color: #cfdcf2; flex-shrink: 0; }
+  .desp-item .mas {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px;
+    color: #0f1729; background: #9fb7dc; border-radius: 14px; padding: 3px 10px; flex-shrink: 0;
+  }
+  .desp-items.compacto { gap: 8px; }
+  .desp-items.compacto .desp-item { padding: 9px 18px; }
+  .desp-items.compacto .desp-item .t { font-size: 21px; }
+  .desp-items.compacto .desp-item .s { display: none; }
+  .desp-items.compacto .desp-item .ic { font-size: 26px; }
+
+  /* día tranquilo */
+  .desp-tranquilo { margin-top: 30px; }
+  .desp-tranquilo .grande { font-family: 'Kalam', cursive; font-size: 42px; font-weight: 700; color: #dfe7f3; line-height: 1.15; }
+  .desp-tranquilo .chico { font-size: 20px; color: #8fa0bd; margin-top: 6px; }
+  .desp-lineas { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(159,183,220,0.16); display: flex; flex-direction: column; gap: 14px; }
+  .desp-lineas div { font-size: 21px; color: #b9c6db; }
+  .desp-aviso { margin-top: 10px; font-size: 16px; color: #7f8fab; }
+
+  .desp-right { display: flex; flex-direction: column; align-items: flex-end; min-height: 0; }
+  .desp-hora { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 88px; color: #e9eef7; line-height: 1; letter-spacing: -0.02em; }
+  .desp-hora small { font-size: 28px; color: #8fa6c9; font-weight: 500; margin-left: 10px; }
+
+  .desp-clima {
+    margin-top: 24px; width: 100%; padding: 20px 24px; border-radius: 20px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(159,183,220,0.14);
+    display: flex; align-items: center; gap: 20px;
+  }
+  .desp-clima .ic { font-size: 58px; }
+  .desp-clima .tt { font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #7186a8; font-weight: 700; }
+  .desp-clima .tmp { font-family: 'Space Grotesk', sans-serif; font-size: 38px; font-weight: 700; color: #eef2f8; }
+  .desp-clima .tmp span { color: #7f97bd; font-size: 28px; }
+  .desp-clima .c { font-size: 18px; color: #9fb0cc; }
+  .desp-clima .para { margin-top: 6px; font-size: 18px; color: #9fd0f2; font-weight: 600; }
+
+  /* foto del día: foto impresa con borde blanco */
+  .desp-recuerdo { margin-top: 26px; width: 100%; flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
+  .desp-foto {
+    background: #f4f1ea; padding: 12px 12px 10px; border-radius: 4px;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.55);
+    transform: rotate(-2deg);
+    width: 92%;
+    filter: brightness(0.86) saturate(0.9);
+  }
+  .desp-foto img { display: block; width: 100%; height: 236px; object-fit: cover; border-radius: 2px; }
+  .desp-foto .pie { font-family: 'Kalam', cursive; font-size: 22px; color: #3a3326; text-align: center; margin-top: 6px; min-height: 26px; }
+
+  .desp-especial, .desp-luna {
+    width: 100%; padding: 26px; border-radius: 22px; text-align: center;
+    background: linear-gradient(150deg, rgba(232,181,77,0.20), rgba(232,181,77,0.08));
+    border: 1px solid rgba(232,181,77,0.35);
+  }
+  .desp-especial .tt, .desp-luna .tt { font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #c9a85e; font-weight: 700; }
+  .desp-especial .tx { font-family: 'Kalam', cursive; font-size: 34px; font-weight: 700; color: #f3e3b8; margin-top: 8px; line-height: 1.2; }
+  .desp-especial .edad { font-family: 'Space Grotesk', sans-serif; font-size: 22px; color: #e8c978; margin-top: 4px; }
+  .desp-luna { background: rgba(255,255,255,0.04); border-color: rgba(159,183,220,0.14); }
+  .desp-luna .ic { font-size: 70px; margin-top: 6px; }
+  .desp-luna .tx { font-family: 'Kalam', cursive; font-size: 26px; color: #c7d3e6; margin-top: 4px; }
+  .desp-luna .tt { color: #7186a8; }
+
+  .desp-frase {
+    position: absolute; left: 56px; right: 56px; bottom: 34px;
+    text-align: center; font-family: 'Kalam', cursive; font-size: 29px; color: #a9bad6;
+  }
+  .desp-frase::before { content: ''; display: block; width: 120px; height: 2px; margin: 0 auto 16px; background: rgba(159,183,220,0.25); }
 </style>
 </head>
 <body>
@@ -1842,6 +1942,23 @@
 <div class="device" id="device">
 
   <div class="fiesta-layer" id="fiestaLayer" aria-hidden="true"></div>
+
+  <!-- DESPEDIDA DEL DÍA (21 a 23): se llena desde renderDespedida() -->
+  <div id="despedida">
+    <div class="desp-wrap">
+      <div id="despStars"></div>
+      <div class="desp-hint">tocá la pantalla para ver el panel completo</div>
+      <div class="desp-grid">
+        <div class="desp-left" id="despLeft"></div>
+        <div class="desp-right">
+          <div class="desp-hora"><span id="despHora">--:--</span><small id="despDia"></small></div>
+          <div id="despClima"></div>
+          <div class="desp-recuerdo" id="despRecuerdo"></div>
+        </div>
+      </div>
+      <div class="desp-frase" id="despFrase"></div>
+    </div>
+  </div>
 
   <div class="top-row">
     <div class="weather-note postit" id="weatherNoteBtn" style="cursor: pointer;">
@@ -1919,6 +2036,7 @@
 
   <div class="overlay-full" id="weekOverlay">
     <div class="overlay-close" id="weekClose">✕</div>
+    <div class="sports-refresh week-refresh" id="weekRefresh" title="Traer la semana de nuevo">🔄</div>
     <div class="full-postit" id="weekCard"></div>
   </div>
 
@@ -2065,6 +2183,8 @@
     document.getElementById('fulldate').textContent = now.getDate() + ' de ' + months[now.getMonth()];
     document.getElementById('clock').innerHTML = pad(now.getHours()) + '<span>:' + pad(now.getMinutes()) + '</span>';
     document.getElementById('nightClockTime').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('despHora').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('despDia').textContent = weekdays[now.getDay()];
     const diaNoche = weekdays[now.getDay()];
     document.getElementById('nightClockDate').textContent = diaNoche.charAt(0).toUpperCase() + diaNoche.slice(1) + ', ' + now.getDate() + ' de ' + months[now.getMonth()];
   }
@@ -2323,6 +2443,7 @@
 
       const days = data.daily.time;
       lastWeatherDaily = data.daily;
+      renderDespedidaSiVisible();
       if (typeof buildSecondaryItems === 'function') buildSecondaryItems();
       const codes = data.daily.weather_code;
       const maxs = data.daily.temperature_2m_max;
@@ -2389,7 +2510,8 @@
   }
 
   loadWeather();
-  setInterval(() => { if (!nightModeActive) loadWeather(); }, 1000 * 60 * 30); // de día, cada 30 min
+  // Open-Meteo actualiza por hora: pedir más seguido es traer lo mismo dos veces
+  setInterval(() => { if (!nightModeActive) loadWeather(); }, 1000 * 60 * 60); // de día, cada 60 min
   setInterval(() => { if (nightModeActive) loadWeather(); }, 1000 * 60 * 90); // de noche, cada 90 min (para que la temp no quede vieja)
 
   const weatherOverlay = document.getElementById('weatherOverlay');
@@ -2405,6 +2527,39 @@
   // ---- calendario de fechas especiales del mes ----
   // ---- vista semanal: lunes a domingo con todo lo de la semana ----
   let ultimasCategorias = {};
+  // Semana completa: se pide a getWeekItems SOLO al tocar "Semana", la primera vez del
+  // día; el resto del día usa lo guardado. El botón 🔄 la pide de nuevo al instante.
+  let ultimaSemana = null;
+  const WEEK_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getWeekItems';
+
+  function semanaGuardadaDeHoy() {
+    try {
+      const raw = localStorage.getItem('semana_cache');
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      return c.dia === ymd(new Date()) ? c.datos : null;
+    } catch (e) { return null; }
+  }
+
+  async function traerSemana(fuerza) {
+    if (!fuerza) {
+      const guardada = semanaGuardadaDeHoy();
+      if (guardada) { ultimaSemana = guardada; return; }
+    }
+    try {
+      const res = await fetch(WEEK_FUNCTION_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const datos = await res.json();
+      ultimaSemana = datos;
+      try { localStorage.setItem('semana_cache', JSON.stringify({ dia: ymd(new Date()), datos })); } catch (e) {}
+    } catch (err) {
+      console.warn('Semana sin conexión:', err.message);
+      // si falla, queda lo último que haya (aunque sea de otro día) o el modo simple
+      if (!ultimaSemana) {
+        try { const c = JSON.parse(localStorage.getItem('semana_cache') || 'null'); if (c) ultimaSemana = c.datos; } catch (e) {}
+      }
+    }
+  }
   const mesesLargos = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const weekOverlay = document.getElementById('weekOverlay');
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -2439,8 +2594,25 @@
     const porDia = {}; // 'DD/MM' → [{ clase, ic, txt, hora }]
     const agregar = (dd, item) => { (porDia[dd] = porDia[dd] || []).push(item); };
 
-    (ultimasCategorias.activity || []).forEach((e) =>
-      agregar(ddmm(diaObjetivo), { clase: 'wk-activity', ic: '📅', txt: e.title, hora: normalizarHora(e.time || ''), who: e.who }));
+    // Semana completa: si la Cloud Function ya manda "semana" (actividades y descuentos con
+    // sus días, pagos con su día del mes), repartimos todo en los 7 días. Si no la manda
+    // (versión vieja de la función), caemos a lo de antes: solo el día que muestra el panel.
+    const sem = ultimaSemana;
+    const diasDeLaSemana = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(lunes); d.setDate(lunes.getDate() + i); diasDeLaSemana.push(d); }
+
+    if (sem && sem.activity) {
+      diasDeLaSemana.forEach((d) => {
+        sem.activity
+          .filter((a) => a.weekDays.includes(d.getDay()))
+          .sort((a, b) => normalizarHora(a.time || '99:99').localeCompare(normalizarHora(b.time || '99:99')))
+          .forEach((a) => agregar(ddmm(d), { clase: 'wk-activity', ic: '📅', txt: a.title, hora: normalizarHora(a.time || ''), who: a.who }));
+      });
+    } else {
+      (ultimasCategorias.activity || []).forEach((e) =>
+        agregar(ddmm(diaObjetivo), { clase: 'wk-activity', ic: '📅', txt: e.title, hora: normalizarHora(e.time || ''), who: e.who }));
+    }
+
     (ultimasCategorias.healthAppointment || []).forEach((e) => {
       const f = partirFecha(e.time);
       if (f) agregar(`${f.dd}/${f.mm}`, { clase: 'wk-health', ic: '🏥', txt: e.title, hora: f.hora, who: e.who });
@@ -2449,12 +2621,32 @@
       const f = partirFecha(e.time);
       if (f) agregar(`${f.dd}/${f.mm}`, { clase: 'wk-school' + (e.done ? ' is-done' : ''), ic: '📚', txt: e.title.replace(/^✅\s*/, '') + (e.done ? ' ✅' : '') });
     });
-    (ultimasCategorias.reminder || []).forEach((e) => {
-      const m = (e.time || '').match(/en (\d+) d/);
-      agregar(masDias(m ? parseInt(m[1], 10) : 0), { clase: 'wk-reminder', ic: '💳', txt: 'Vence ' + e.title });
-    });
-    (ultimasCategorias.discount || []).forEach((e) =>
-      agregar(ddmm(diaObjetivo), { clase: 'wk-discount', ic: '🛒', txt: e.title }));
+
+    if (sem && sem.reminder) {
+      diasDeLaSemana.forEach((d) => {
+        sem.reminder.filter((r) => r.dayOfMonth === d.getDate())
+          .forEach((r) => agregar(ddmm(d), { clase: 'wk-reminder', ic: '💳', txt: 'Vence ' + r.title }));
+      });
+    } else {
+      (ultimasCategorias.reminder || []).forEach((e) => {
+        const m = (e.time || '').match(/en (\d+) d/);
+        agregar(masDias(m ? parseInt(m[1], 10) : 0), { clase: 'wk-reminder', ic: '💳', txt: 'Vence ' + e.title });
+      });
+    }
+
+    // descuentos: un solo chip por día con todos juntos, para no llenar la columna
+    const chipDescuentos = (lista) => lista.map((e) => {
+      const m = (e.title || '').match(/^(\d+%)\s+en\s+(.+)$/i);
+      return m ? `<b>${m[1]}</b> ${m[2]}` : e.title;
+    }).join(' · ');
+    if (sem && sem.discount) {
+      diasDeLaSemana.forEach((d) => {
+        const delDia = sem.discount.filter((x) => x.daysOfWeek.includes(d.getDay()));
+        if (delDia.length) agregar(ddmm(d), { clase: 'wk-discount', ic: '🛒', txt: chipDescuentos(delDia) });
+      });
+    } else if ((ultimasCategorias.discount || []).length) {
+      agregar(ddmm(diaObjetivo), { clase: 'wk-discount', ic: '🛒', txt: chipDescuentos(ultimasCategorias.discount) });
+    }
 
     let html = `
       <div class="week-head">
@@ -2497,9 +2689,27 @@
     document.getElementById('weekCard').innerHTML = html;
   }
 
-  document.getElementById('weekBtn').addEventListener('click', () => {
+  document.getElementById('weekBtn').addEventListener('click', async () => {
+    // se abre al toque con lo que haya; si hay que traer la semana, se completa en 1-2 seg
     renderWeekCard();
     weekOverlay.classList.add('show');
+    if (!semanaGuardadaDeHoy()) {
+      await traerSemana(false);
+      if (weekOverlay.classList.contains('show')) renderWeekCard();
+    }
+  });
+
+  document.getElementById('weekRefresh').addEventListener('click', async (e) => {
+    e.stopPropagation(); // que no cierre la pantalla
+    const btn = e.currentTarget;
+    if (btn.classList.contains('spinning')) return;
+    btn.classList.add('spinning');
+    try {
+      await traerSemana(true);
+      renderWeekCard();
+    } finally {
+      btn.classList.remove('spinning');
+    }
   });
   weekOverlay.addEventListener('click', (e) => {
     if (!e.target.closest('.full-postit')) {
@@ -2939,7 +3149,13 @@
   // ---- fórmula 1: Jolpica API (sucesora gratuita de Ergast), sin key ----
   let f1Info = null;
 
-  async function fetchF1Info() {
+  // F1: el calendario de un GP no cambia en el día → se pide UNA VEZ POR DÍA
+  // (fuerza=true lo pide igual, para el botón 🔄 de deportes)
+  async function fetchF1Info(fuerza) {
+    const hoyStr = ymd(new Date());
+    if (!fuerza && localStorage.getItem('f1Info_dia') === hoyStr && localStorage.getItem('f1Info')) {
+      try { f1Info = JSON.parse(localStorage.getItem('f1Info')); return; } catch (e) { /* seguimos y la pedimos */ }
+    }
     try {
       const res = await fetch('https://api.jolpi.ca/ergast/f1/current/next.json');
       const data = await res.json();
@@ -2965,6 +3181,7 @@
         sessions
       };
       localStorage.setItem('f1Info', JSON.stringify(f1Info));
+      localStorage.setItem('f1Info_dia', hoyStr);
     } catch (err) {
       console.warn('F1 sin conexión, uso guardado:', err.message);
       const cached = localStorage.getItem('f1Info');
@@ -2992,7 +3209,7 @@
     return `${dayName} ${hh}:${mm}hs`;
   }
 
-  async function loadSports() {
+  async function loadSports(fuerzaF1) {
     const teams = [
       { id: '135173', label: 'San Lorenzo', emoji: '🔴🔵' },
       { id: '133738', label: 'Real Madrid', emoji: '⚪' }
@@ -3001,11 +3218,12 @@
       teams.map((t) => fetchNextMatch(t.id, t.label, t.emoji))
     );
     await Promise.all(teams.map((t) => fetchLastResult(t.id, t.label)));
-    await fetchF1Info();
+    await fetchF1Info(fuerzaF1 === true);
     sportsItems = results.map((r) => r.text).filter(Boolean);
     results.forEach((r, i) => scheduleNextCheckFor(teams[i].id, teams[i].label, teams[i].emoji, r.kickoffMs));
     renderSportsCards();
     showNextTickerItem();
+    renderDespedidaSiVisible(); // por si llegó un partido o la F1 de mañana
   }
 
   // ---- arma los post-its del desplegable de fútbol (+ F1 si corresponde) ----
@@ -3176,7 +3394,7 @@
     if (btn.classList.contains('spinning')) return; // ya está recargando, no duplicar
     btn.classList.add('spinning');
     try {
-      await loadSports();
+      await loadSports(true);
     } finally {
       btn.classList.remove('spinning');
     }
@@ -3341,9 +3559,21 @@
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
   }
 
+  // Feriados: se piden UNA VEZ POR SEMANA (no por año: a veces se agregan por decreto
+  // a mitad de año). Si la API falla, queda la lista guardada y se reintenta en la
+  // próxima recarga (todos los días a las 4).
   async function loadFeriados() {
     const anio = new Date().getFullYear();
     const cacheKey = 'feriados_' + anio;
+    const tsKey = cacheKey + '_ts';
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      const ts = parseInt(localStorage.getItem(tsKey) || '0', 10);
+      if (cached && Date.now() - ts < 7 * 86400000) {
+        feriadosDelAnio = JSON.parse(cached);
+        return; // la lista tiene menos de una semana: no hace falta pedirla
+      }
+    } catch (e) { /* sin almacenamiento: seguimos y la pedimos */ }
     try {
       const res = await fetch(`https://api.argentinadatos.com/v1/feriados/${anio}`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -3351,6 +3581,7 @@
       // la API devuelve [{ fecha, tipo, nombre }] — contemplamos 'motivo' por si cambia
       feriadosDelAnio = (data || []).map((f) => ({ fecha: f.fecha, texto: '🇦🇷 ' + (f.nombre || f.motivo || 'Feriado') }));
       localStorage.setItem(cacheKey, JSON.stringify(feriadosDelAnio));
+      localStorage.setItem(tsKey, String(Date.now()));
     } catch (err) {
       console.warn('Feriados sin conexión, uso guardado:', err.message);
       const cached = localStorage.getItem(cacheKey);
@@ -3360,7 +3591,10 @@
 
   // ---- junta todo lo del día de hoy ----
   function fechasDeHoy() {
-    const hoy = new Date();
+    return fechasDeFecha(new Date());
+  }
+
+  function fechasDeFecha(hoy) {
     const hoyDDMM = ddmm(hoy);
     const hoyYMD = ymd(hoy);
     const moviles = fechasMoviles(hoy.getFullYear());
@@ -4042,6 +4276,7 @@
       const data = await res.json();
       const categories = data.categories || {};
       ultimasCategorias = categories; // guardamos para la vista semanal
+      pendientesFallo = false;
       modoPendientes = data.mode === 'tomorrow' ? 'tomorrow' : 'today';
       diaPendientes = data.dayLabel || '';
       actualizarSelloModo();
@@ -4060,12 +4295,16 @@
         empty.style.background = 'var(--cream)';
         empty.innerHTML = `<div class="note-tape"></div><div class="note-head"><span class="note-ic">🏠</span><span>${data.mode === 'tomorrow' ? 'Mañana' : 'Hoy'}</span></div><div class="note-body"><div class="note-title">Nada pendiente 🎉</div></div>`;
         notesRow.appendChild(empty);
+        renderDespedidaSiVisible();
         return;
       }
 
       notes.forEach((note) => notesRow.appendChild(note));
+      renderDespedidaSiVisible();
     } catch (err) {
       console.warn('No se pudo cargar CasaHub:', err.message);
+      pendientesFallo = true;
+      renderDespedidaSiVisible();
       if (loadingNote) {
         loadingNote.querySelector('.note-title').textContent = 'Sin conexión';
         loadingNote.querySelector('.note-who').textContent = 'CasaHub';
@@ -4201,6 +4440,310 @@
     '"Mañana el sol sale igual, aunque te acuestes temprano."'
   ];
 
+
+  // ═══════════════════════════════════════════════════════════════
+  // DESPEDIDA DEL DÍA (21:00 → 23:00)
+  // En vez del panel completo, una pantalla azul noche con lo ESENCIAL de mañana:
+  // un renglón por categoría (lo primero del día + "+N" si hay más), el clima de
+  // mañana, la foto del día (o la fecha especial de mañana, o la luna) y una frase.
+  // Tocar la pantalla muestra el panel completo unos minutos.
+  // A las 21 no interrumpe: si hay una pantalla o la TV abierta, espera.
+  // ═══════════════════════════════════════════════════════════════
+  var pendientesFallo = false;
+  let despedidaPeekHasta = 0;
+  let despedidaUltimoRender = 0;
+  const FOTO_FUNCTION_URL = 'https://southamerica-east1-casahub-prod.cloudfunctions.net/getFotoDelDia';
+  let fotoDelDia = null;          // { dataUrl, anio, haceAnios } o null
+  let fotoPedida = false;
+
+  // estrellitas (una sola vez, fijas, titilan muy lento)
+  (function armarEstrellas() {
+    const cont = document.getElementById('despStars');
+    for (let i = 0; i < 48; i++) {
+      const st = document.createElement('span');
+      st.className = 'desp-star';
+      st.style.left = ((i * 37.3) % 100) + '%';
+      st.style.top = ((i * 53.7 + (i % 5) * 7) % 100) + '%';
+      st.style.animationDuration = (6 + (i % 7)) + 's';
+      st.style.animationDelay = (-(i % 9)) + 's';
+      cont.appendChild(st);
+    }
+  })();
+
+  function maniana() { const d = new Date(); d.setDate(d.getDate() + 1); return d; }
+  function horaDe(ms) { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function chipQuien(who) {
+    if (!who) return '';
+    const p = personaDe(who);
+    return p ? `<span class="dot" style="background:${p.color}"></span>${p.nombre}` : who;
+  }
+
+  // ---- lo esencial de mañana: un renglón por categoría ----
+  function itemsDeManiana() {
+    const tDD = tomorrowDDMM();
+    const tSiempre = modoPendientes === 'tomorrow'; // actividades y pagos solo vienen para el día que muestra el panel
+    const items = [];
+    const porHora = (a, b) => (a || '99:99').localeCompare(b || '99:99');
+
+    const turnos = (ultimasCategorias.healthAppointment || [])
+      .filter((e) => e.time && e.time.includes(tDD))
+      .map((e) => ({ e, hora: (partirFecha(e.time) || {}).hora || '' }))
+      .sort((a, b) => porHora(a.hora, b.hora));
+    if (turnos.length) {
+      const { e, hora } = turnos[0];
+      items.push({ ic: '🏥', t: e.title, s: chipQuien(e.who), hora, mas: turnos.length - 1 });
+    }
+
+    const colegio = (ultimasCategorias.schoolTask || []).filter((e) => e.time && e.time.includes(tDD) && !e.done);
+    if (colegio.length) {
+      items.push({ ic: '🎒', t: 'Colegio mañana: ' + colegio[0].title, s: colegio[0].who || '', hora: '', mas: colegio.length - 1, alFinal: 1 });
+    }
+
+    if (tSiempre) {
+      const acts = (ultimasCategorias.activity || [])
+        .map((e) => ({ e, hora: normalizarHora(e.time || '') }))
+        .sort((a, b) => porHora(a.hora, b.hora));
+      if (acts.length) {
+        const { e, hora } = acts[0];
+        items.push({ ic: '📅', t: e.title, s: chipQuien(e.who), hora, mas: acts.length - 1 });
+      }
+      const pagos = (ultimasCategorias.reminder || []).filter((e) => /^vence mañana/i.test(e.time || ''));
+      if (pagos.length) {
+        items.push({ ic: iconoServicio(pagos[0].title), t: pagos[0].title + ' · vence mañana', s: '', hora: '', mas: pagos.length - 1, alFinal: 2 });
+      }
+    }
+
+    // fútbol: si juegan los dos mañana, va San Lorenzo
+    for (const id of ['135173', '133738']) {
+      const info = matchInfo[id];
+      if (info && info.kickoffMs && ddmm(new Date(info.kickoffMs)) === tDD) {
+        items.push({ ic: '⚽', t: info.vsText, s: ligaEnEspanol(info.league), hora: horaDe(info.kickoffMs), mas: 0 });
+        break;
+      }
+    }
+
+    // F1: solo la primera sesión del día
+    if (f1Info && f1Info.sessions) {
+      const ses = f1Info.sessions.filter((x) => ddmm(new Date(x.utcMs)) === tDD).sort((a, b) => a.utcMs - b.utcMs)[0];
+      if (ses) items.push({ ic: '🏎️', t: `${ses.label} · ${traducirGP(f1Info.raceName)}`, s: 'Fórmula 1', hora: horaDe(ses.utcMs), mas: 0 });
+    }
+
+    // orden: por horario; al final lo que no tiene hora (colegio, pagos)
+    return items.sort((a, b) => {
+      if (!a.hora && !b.hora) return (a.alFinal || 0) - (b.alFinal || 0);
+      if (!a.hora) return 1;
+      if (!b.hora) return -1;
+      return a.hora.localeCompare(b.hora);
+    });
+  }
+
+  // lo próximo después de mañana (para el día tranquilo)
+  function loProximoDespuesDeManiana() {
+    const t = maniana(); t.setHours(23, 59, 59, 0);
+    const cand = [];
+    const add = (lista, ic) => (lista || []).forEach((e) => {
+      const f = partirFecha(e.time);
+      if (!f || e.done) return;
+      let anio = new Date().getFullYear();
+      if (parseInt(f.mm, 10) < new Date().getMonth() + 1 - 6) anio++;
+      const d = new Date(anio, parseInt(f.mm, 10) - 1, parseInt(f.dd, 10));
+      if (d > t) cand.push({ d, txt: `${ic} Lo próximo: ${e.title.replace(/^✅\s*/, '')}, ${fechaCorta(e.time)}` });
+    });
+    add(ultimasCategorias.healthAppointment, '🏥');
+    add(ultimasCategorias.schoolTask, '🎒');
+    cand.sort((a, b) => a.d - b.d);
+    return cand[0] ? cand[0].txt : null;
+  }
+
+  function climaDeManianaHTML() {
+    const d = lastWeatherDaily;
+    if (!d || !d.time || d.time.length < 2) return '';
+    const info = weatherInfo(d.weather_code[1], true);
+    const lluvia = [51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(d.weather_code[1]) ||
+      (d.precipitation_sum && d.precipitation_sum[1] >= 1);
+    return `
+      <div class="desp-clima">
+        <div class="ic">${info.ic}</div>
+        <div>
+          <div class="tt">El tiempo mañana</div>
+          <div class="tmp">${Math.round(d.temperature_2m_max[1])}° <span>/ ${Math.round(d.temperature_2m_min[1])}°</span></div>
+          <div class="c">${info.txt}</div>
+          ${lluvia ? '<div class="para">☂️ Llevá paraguas</div>' : ''}
+        </div>
+      </div>`;
+  }
+
+  function recuerdoHTML(especial, tAnio) {
+    if (especial) {
+      const edad = especial.nacimiento ? `<div class="edad">cumple ${tAnio - especial.nacimiento}</div>` : '';
+      return `
+        <div class="desp-especial">
+          <div class="tt">Mañana</div>
+          <div class="tx">${especial.listado || especial.texto}</div>
+          ${edad}
+        </div>`;
+    }
+    if (fotoDelDia && fotoDelDia.dataUrl) {
+      const pie = fotoDelDia.haceAnios
+        ? `Hoy hace ${fotoDelDia.haceAnios} año${fotoDelDia.haceAnios > 1 ? 's' : ''} 💛`
+        : (fotoDelDia.anio ? String(fotoDelDia.anio) : '');
+      return `
+        <div class="desp-foto">
+          <img src="${fotoDelDia.dataUrl}" alt="">
+          <div class="pie">${pie}</div>
+        </div>`;
+    }
+    const luna = getMoonPhaseInfo(new Date());
+    return `
+      <div class="desp-luna">
+        <div class="tt">La luna de esta noche</div>
+        <div class="ic">${luna.ic}</div>
+        <div class="tx">${luna.name}</div>
+      </div>`;
+  }
+
+  // foto del día: se pide una vez por noche y queda guardada en la tablet
+  async function cargarFotoDelDia() {
+    const hoyStr = ymd(new Date());
+    try {
+      const c = JSON.parse(localStorage.getItem('foto_dia') || 'null');
+      if (c && c.dia === hoyStr) { fotoDelDia = c.foto; return; }
+    } catch (e) {}
+    if (fotoPedida) return;
+    fotoPedida = true;
+    try {
+      const res = await fetch(FOTO_FUNCTION_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      fotoDelDia = data.foto || null;
+      try { localStorage.setItem('foto_dia', JSON.stringify({ dia: hoyStr, foto: fotoDelDia })); } catch (e) {}
+      renderDespedidaSiVisible();
+    } catch (err) {
+      console.warn('Foto del día sin conexión, va la luna:', err.message);
+      fotoPedida = false; // que lo reintente en la próxima vuelta
+    }
+  }
+
+  function renderDespedida() {
+    despedidaUltimoRender = Date.now();
+    const t = maniana();
+    const tYMD = ymd(t);
+    const { grupo1, grupo2 } = fechasDeFecha(t);
+    const feriado = feriadosDelAnio.find((f) => f.fecha === tYMD);
+    const especial = grupo1[0] || grupo2.find((f) => !(f.texto || '').startsWith('🇦🇷')) || null;
+    const items = itemsDeManiana();
+    const nombreDia = weekdays[t.getDay()];
+
+    let izq = `
+      <div class="desp-hola">Buenas noches 🌙</div>
+      <div class="desp-manana">Mañana es <span>${nombreDia} ${t.getDate()}</span></div>
+      ${feriado ? `<div class="desp-feriado">🇦🇷 Feriado: ${feriado.texto.replace(/^🇦🇷\s*/, '')}</div>` : ''}`;
+
+    if (items.length) {
+      izq += `
+        <div class="desp-tit">Lo que trae mañana</div>
+        <div class="desp-items ${items.length > 4 ? 'compacto' : ''}">
+          ${items.map((it) => `
+            <div class="desp-item">
+              <div class="ic">${it.ic}</div>
+              <div class="tx"><div class="t">${it.t}</div>${it.s ? `<div class="s">${it.s}</div>` : ''}</div>
+              ${it.hora ? `<div class="h">${it.hora}</div>` : ''}
+              ${it.mas > 0 ? `<div class="mas">+${it.mas}</div>` : ''}
+            </div>`).join('')}
+        </div>`;
+      if (pendientesFallo) izq += `<div class="desp-aviso">No pude traer todo lo de mañana.</div>`;
+    } else {
+      // ---- día tranquilo ----
+      const finde = t.getDay() === 0 || t.getDay() === 6;
+      let grande, chico;
+      if (pendientesFallo) {
+        grande = 'No pude traer lo de mañana';
+        chico = 'Revisá la app de CasaHub por las dudas.';
+      } else if (grupo1.length) {
+        grande = 'Mañana es un día especial ✨';
+        chico = 'Sin turnos ni tareas: todo el día para celebrar.';
+      } else if (feriado) {
+        grande = 'Mañana es feriado 🇦🇷 — a disfrutarlo';
+        chico = 'Sin turnos, sin tareas, sin apuros.';
+      } else if (finde) {
+        grande = `Mañana es ${nombreDia}: día libre para estar juntos 💛`;
+        chico = 'Sin turnos, sin tareas, sin apuros.';
+      } else {
+        grande = 'Mañana viene tranquilo 🌙';
+        chico = 'Sin turnos, sin tareas, sin apuros.';
+      }
+      const lineas = [];
+      if (lastWeatherDaily && lastWeatherDaily.sunrise && lastWeatherDaily.sunrise[1]) {
+        const sr = new Date(lastWeatherDaily.sunrise[1]);
+        lineas.push(`🌅 Mañana amanece a las ${pad(sr.getHours())}:${pad(sr.getMinutes())}`);
+      }
+      const prox = loProximoDespuesDeManiana();
+      if (prox) lineas.push(prox);
+      const fam = proximaFechaEspecial();
+      if (fam && fam.diffDias >= 2) lineas.push(`⏳ En ${fam.diffDias} días: ${(fam.listado || fam.texto)}`);
+      const efem = efemerides[ddmm(t)];
+      if (efem) lineas.push(`📜 Mañana es el ${efem}`);
+      izq += `
+        <div class="desp-tranquilo">
+          <div class="grande">${grande}</div>
+          <div class="chico">${chico}</div>
+        </div>
+        ${lineas.length ? `<div class="desp-lineas">${lineas.map((l) => `<div>${l}</div>`).join('')}</div>` : ''}`;
+    }
+
+    document.getElementById('despLeft').innerHTML = izq;
+    document.getElementById('despClima').innerHTML = climaDeManianaHTML();
+    document.getElementById('despRecuerdo').innerHTML = recuerdoHTML(especial, t.getFullYear());
+
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    document.getElementById('despFrase').textContent = frasesDeDormir[dayOfYear % frasesDeDormir.length];
+  }
+
+  function renderDespedidaSiVisible() {
+    const el = document.getElementById('despedida');
+    if (el && el.classList.contains('show') && typeof frasesDeDormir !== 'undefined') renderDespedida();
+  }
+
+  function hayAlgoAbierto() {
+    return !!document.querySelector('.overlay-full.show') || (typeof tvOn !== 'undefined' && tvOn);
+  }
+
+  function actualizarDespedida() {
+    const el = document.getElementById('despedida');
+    const corresponde = atardecerNivel >= 1 && !nightModeActive;
+    el.classList.toggle('nivel-2', atardecerNivel === 2);
+
+    if (!corresponde || Date.now() < despedidaPeekHasta) {
+      el.classList.remove('visible');
+      el.classList.remove('show');
+      return;
+    }
+    if (el.classList.contains('show')) {
+      // ya está a la vista: se refresca cada 5 minutos por si cambió algo
+      if (Date.now() - despedidaUltimoRender > 5 * 60 * 1000) renderDespedida();
+      return;
+    }
+    if (hayAlgoAbierto()) return; // no corta lo que alguien está mirando: espera
+
+    // si el panel todavía tiene lo de HOY (por ejemplo, justo a las 21:00), pide lo de mañana
+    if (modoPendientes !== 'tomorrow' && !pendientesFallo) loadPendingToday();
+    cargarFotoDelDia();
+    renderDespedida();
+    el.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+  }
+
+  // tocar la despedida → panel completo por 3 minutos (y se estira mientras lo usen)
+  document.getElementById('despedida').addEventListener('click', () => {
+    despedidaPeekHasta = Date.now() + 3 * 60 * 1000;
+    actualizarDespedida();
+  });
+  document.addEventListener('pointerdown', () => {
+    if (atardecerNivel >= 1 && Date.now() < despedidaPeekHasta) {
+      despedidaPeekHasta = Date.now() + 3 * 60 * 1000;
+    }
+  }, true);
+
   function aplicarAtardecer(forzar) {
     const nivel = nivelAtardecer();
     if (nivel === atardecerNivel && !forzar) return;
@@ -4219,6 +4762,8 @@
   }
   aplicarAtardecer(true);
   setInterval(() => aplicarAtardecer(false), 1000 * 60); // revisa cada minuto
+  actualizarDespedida();
+  setInterval(actualizarDespedida, 1000 * 20); // cada 20 seg: entra/sale la despedida
 
   postItsListos = true;
   renderEfemeride();
