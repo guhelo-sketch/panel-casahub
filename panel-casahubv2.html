@@ -1824,7 +1824,11 @@
   #despedida.show { display: block; }
   #despedida.visible { opacity: 1; }
   .desp-wrap { position: absolute; inset: 0; transition: filter 60s linear; }
-  #despedida.nivel-2 .desp-wrap { filter: brightness(0.72); }
+  /* cada escalón baja brillo y color; el cambio tarda 1 minuto, así no se nota el salto */
+  #despedida.nivel-1 .desp-wrap { filter: brightness(0.85) saturate(0.8); }
+  #despedida.nivel-2 .desp-wrap { filter: brightness(0.72) saturate(0.7); }
+  #despedida.nivel-3 .desp-wrap { filter: brightness(0.6) saturate(0.6); }
+  #despedida.nivel-4 .desp-wrap { filter: brightness(0.5) saturate(0.5); }
 
   .desp-star {
     position: absolute; width: 2px; height: 2px; border-radius: 50%;
@@ -2170,9 +2174,12 @@
   function nivelAtardecer() {
     const now = new Date();
     const min = now.getHours() * 60 + now.getMinutes();
-    if (min >= 22 * 60 + 30 && min < 23 * 60) return 2;
-    if (min >= 21 * 60 && min < 23 * 60) return 1;
-    return 0;
+    // 4 escalones, cada vez más tenue: 21:00 · 21:30 · 22:00 · 22:30 (a las 23 entra el reloj negro)
+    if (min < 21 * 60 || min >= 23 * 60) return 0;
+    if (min >= 22 * 60 + 30) return 4;
+    if (min >= 22 * 60) return 3;
+    if (min >= 21 * 60 + 30) return 2;
+    return 1;
   }
 
   function tick(){
@@ -4711,7 +4718,7 @@
   function actualizarDespedida() {
     const el = document.getElementById('despedida');
     const corresponde = atardecerNivel >= 1 && !nightModeActive;
-    el.classList.toggle('nivel-2', atardecerNivel === 2);
+    for (let n = 1; n <= 4; n++) el.classList.toggle('nivel-' + n, atardecerNivel === n);
 
     if (!corresponde || Date.now() < despedidaPeekHasta) {
       el.classList.remove('visible');
@@ -4751,7 +4758,7 @@
     atardecerNivel = nivel;
     const device = document.getElementById('device');
     device.classList.toggle('modo-atardecer', nivel >= 1);
-    device.classList.toggle('modo-atardecer-2', nivel === 2);
+    device.classList.toggle('modo-atardecer-2', nivel >= 3);
     tick();
     // al entrar o salir del atardecer, la barra del medio cambia de contenido al toque
     if (cambioDeModo || forzar) {
