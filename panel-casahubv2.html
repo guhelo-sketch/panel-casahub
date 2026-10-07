@@ -1877,11 +1877,11 @@
   .desp-items.compacto .desp-item .ic { font-size: 26px; }
 
   /* día tranquilo */
-  .desp-tranquilo { margin-top: 30px; }
-  .desp-tranquilo .grande { font-family: 'Kalam', cursive; font-size: 42px; font-weight: 700; color: #dfe7f3; line-height: 1.15; }
-  .desp-tranquilo .chico { font-size: 20px; color: #8fa0bd; margin-top: 6px; }
-  .desp-lineas { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(159,183,220,0.16); display: flex; flex-direction: column; gap: 14px; }
-  .desp-lineas div { font-size: 21px; color: #b9c6db; }
+  .desp-tranquilo { margin-top: 46px; }
+  .desp-tranquilo .grande { font-family: 'Kalam', cursive; font-size: 50px; font-weight: 700; color: #dfe7f3; line-height: 1.12; }
+  .desp-tranquilo .chico { font-size: 23px; color: #8fa0bd; margin-top: 8px; }
+  .desp-lineas { margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(159,183,220,0.16); display: flex; flex-direction: column; gap: 22px; }
+  .desp-lineas div { font-size: 25px; color: #b9c6db; }
   .desp-aviso { margin-top: 10px; font-size: 16px; color: #7f8fab; }
 
   .desp-right { display: flex; flex-direction: column; align-items: flex-end; min-height: 0; }
@@ -4554,7 +4554,8 @@
       let anio = new Date().getFullYear();
       if (parseInt(f.mm, 10) < new Date().getMonth() + 1 - 6) anio++;
       const d = new Date(anio, parseInt(f.mm, 10) - 1, parseInt(f.dd, 10));
-      if (d > t) cand.push({ d, txt: `${ic} Lo próximo: ${e.title.replace(/^✅\s*/, '')}, ${fechaCorta(e.time)}` });
+      const quien = e.who ? ` (${personaDe(e.who) ? personaDe(e.who).nombre : e.who})` : '';
+      if (d > t) cand.push({ d, txt: `${ic} Lo próximo: ${e.title.replace(/^✅\s*/, '')}${quien} · ${fechaCorta(e.time)}` });
     });
     add(ultimasCategorias.healthAppointment, '🏥');
     add(ultimasCategorias.schoolTask, '🎒');
