@@ -4053,7 +4053,7 @@
     const style = typeStyle[type];
     const note = document.createElement('div');
     const conFecha = type === 'schoolTask' || type === 'healthAppointment';
-    const esHoy = conFecha && entry.time && entry.time.includes(todayDDMM());
+    const esHoy = conFecha && todaviaHoy(entry);
     const esManiana = conFecha && !esHoy && entry.time && entry.time.includes(tomorrowDDMM());
     const venceHoy = type === 'reminder' && /^vence hoy/i.test(entry.time || '');
     const venceManiana = type === 'reminder' && /^vence mañana/i.test(entry.time || '');
@@ -4146,6 +4146,18 @@
     return hit ? hit[1] : '🧾';
   }
 
+  // ¿Sigue siendo "de hoy"? Es de hoy y, si tiene hora, todavía no pasó media hora de ese horario.
+  // (un turno de las 19:45 deja de destacarse a las 20:15)
+  function todaviaHoy(e) {
+    if (!e || !e.time || !e.time.includes(todayDDMM())) return false;
+    const f = partirFecha(e.time);
+    if (!f || !f.hora || !/^\d{2}:\d{2}$/.test(f.hora)) return true; // sin hora: todo el día
+    const [hh, mm] = f.hora.split(':').map(Number);
+    const limite = new Date();
+    limite.setHours(hh, mm + 30, 0, 0);
+    return new Date() <= limite;
+  }
+
   function todayDDMM() {
     const now = new Date();
     return String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0');
@@ -4160,7 +4172,9 @@
       });
       return partes.join(' · ') + (entries.length > 2 ? ' …' : '');
     }
-    const pendiente = entries.find((e) => !e.done) || entries[0];
+    // el próximo de verdad: saltea los hechos y los de hoy que ya pasaron (más de media hora)
+    const yaPaso = (e) => e.time && e.time.includes(todayDDMM()) && !todaviaHoy(e);
+    const pendiente = entries.find((e) => !e.done && !yaPaso(e)) || entries.find((e) => !e.done) || entries[0];
     const cuando = (type === 'schoolTask' || type === 'healthAppointment')
       ? fechaCorta(pendiente.time) : normalizarHora(pendiente.time || '');
     const titulo = (pendiente.title || '').replace(/^✅\s*/, '');
@@ -4171,7 +4185,7 @@
     const style = typeStyle[type];
     const note = document.createElement('div');
     const conFechaG = type === 'schoolTask' || type === 'healthAppointment';
-    const hayHoy = conFechaG && entries.some((e) => e.time && e.time.includes(todayDDMM()));
+    const hayHoy = conFechaG && entries.some((e) => todaviaHoy(e) && !e.done);
     const hayManiana = conFechaG && !hayHoy && entries.some((e) => e.time && e.time.includes(tomorrowDDMM()));
     note.className = 'note dynamic-pending grouped' + (hayHoy ? ' has-today' : '') + (hayManiana ? ' has-tomorrow' : '');
     note.style.background = style.bg;
@@ -4199,6 +4213,36 @@
       reminder: 'pagos'
     };
     const etiqueta = plurales[type] || style.cat.toLowerCase();
+
+    // Si hay algo de HOY en la pila, lo de hoy es lo importante: va grande
+    // (hora, nombre y persona) y la cantidad pasa abajo como "+N más".
+    if (hayHoy) {
+      const deHoy = entries
+        .filter((e) => todaviaHoy(e) && !e.done)
+        .map((e) => ({ e, hora: (partirFecha(e.time) || {}).hora || '' }))
+        .sort((a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99'));
+      if (deHoy.length) {
+        const { e, hora } = deHoy[0];
+        const resto = entries.length - 1;
+        const otrosHoy = deHoy.length - 1;
+        const singular = { healthAppointment: 'turno', schoolTask: 'tarea' }[type] || 'más';
+        const pie = otrosHoy > 0
+          ? `<b>+${otrosHoy} hoy</b>${resto - otrosHoy > 0 ? ` · ${resto - otrosHoy} más adelante` : ''}`
+          : `<b>+${resto}</b> ${resto === 1 ? singular : etiqueta} más adelante`;
+        note.innerHTML = `
+          <div class="note-tape"></div>
+          <div class="note-today-badge">HOY</div>
+          ${cabecera(style, '<span class="note-more">›</span>')}
+          <div class="note-body">
+            ${hora ? `<div class="note-time">hoy · ${hora}</div>` : ''}
+            <div class="note-title">${e.title.replace(/^✅\s*/, '')}</div>
+            ${e.who ? `<div class="note-who" style="margin-top:8px">${whoChip(e.who)}</div>` : ''}
+          </div>
+          <div class="note-foot">${pie}</div>
+        `;
+        return note;
+      }
+    }
 
     note.innerHTML = `
       <div class="note-tape"></div>
@@ -4320,6 +4364,15 @@
   }
 
   loadPendingToday(); // carga al abrir el panel
+
+  // cada 5 minutos se rearman las tarjetas con lo que ya está cargado (sin pedir nada nuevo),
+  // así un turno deja de figurar "hoy" justo a la media hora de su horario
+  setInterval(() => {
+    if (nightModeActive || !ultimasCategorias || !Object.keys(ultimasCategorias).length) return;
+    document.querySelectorAll('.dynamic-pending').forEach((el) => el.remove());
+    const notesRow = document.getElementById('notes');
+    buildCategoryNotes(ultimasCategorias).forEach((n) => notesRow.appendChild(n));
+  }, 1000 * 60 * 5);
   setInterval(() => { if (!nightModeActive) loadPendingToday(); }, 1000 * 60 * 30); // y refresca cada 30 min, pausado de noche
 
   // además, un pedido puntual justo a las 21:00 en punto (hora del celu),
