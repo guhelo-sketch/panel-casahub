@@ -1930,6 +1930,11 @@
     text-align: center; font-family: 'Kalam', cursive; font-size: 29px; color: #a9bad6;
   }
   .desp-frase::before { content: ''; display: block; width: 120px; height: 2px; margin: 0 auto 16px; background: rgba(159,183,220,0.25); }
+
+  /* día de fiesta en la despedida: el saludo de cierre arriba, en dorado, y la animación más lenta y tenue */
+  .desp-hola.es-fiesta { font-size: 36px; color: #f0d48a; }
+  .desp-fiesta .fiesta-p { opacity: 0.35; }
+  .desp-fiesta .fiesta-p.confeti { opacity: 0.4; }
 </style>
 </head>
 <body>
@@ -1951,6 +1956,7 @@
   <div id="despedida">
     <div class="desp-wrap">
       <div id="despStars"></div>
+      <div class="fiesta-layer desp-fiesta" id="despFiesta" aria-hidden="true"></div>
       <div class="desp-hint">tocá la pantalla para ver el panel completo</div>
       <div class="desp-grid">
         <div class="desp-left" id="despLeft"></div>
@@ -3487,20 +3493,20 @@
   const fechasGrupo1 = [
     // nacimiento → el saludo y los listados dicen cuántos años cumple
     // tema → qué animación de fiesta se ve ese día (confeti, corazones, nieve, destellos, huellitas, estrellas)
-    { fecha: '06/03', texto: '🎂 ¡Feliz cumpleaños, Gustavo!', listado: '🎂 Cumpleaños de Gustavo', nacimiento: 1981, tema: 'cumple' },
-    { fecha: '18/03', texto: '🎂 ¡Feliz cumpleaños, Perla!', listado: '🎂 Cumpleaños de Perla', nacimiento: 1984, tema: 'cumple' },
-    { fecha: '13/04', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!', listado: '🎂 Cumpleaños de Lorenzo', nacimiento: 2014, tema: 'cumple' },
-    { fecha: '13/08', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!', listado: '🤚 Día del Zurdo', tema: 'estrella' },
-    { fecha: '13/11', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!', listado: '💍 Aniversario de casados', tema: 'amor' },
-    { fecha: '17/12', texto: '📊 ¡Feliz Día del Contador, Perla!', listado: '📊 Día del Contador', tema: 'estrella' },
-    { fecha: '26/12', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!', listado: '❤️ Aniversario de novios', tema: 'amor' },
-    { fecha: '25/12', texto: '🎄 ¡Feliz Navidad para toda la familia!', listado: '🎄 Navidad', tema: 'navidad' },
-    { fecha: '01/01', texto: '🎉 ¡Feliz Año Nuevo!', listado: '🎉 Año Nuevo', tema: 'anionuevo' },
-    { fecha: '20/02', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
-    { fecha: '08/08', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
-    { fecha: '29/10', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
-    { fecha: '25/03', texto: '🐱 ¡Feliz cumpleaños, Wall-e!', listado: '🐱 Cumpleaños de Wall-e', tema: 'gato' },
-    { fecha: '28/03', texto: '🐱 ¡Feliz cumpleaños, Mabel!', listado: '🐱 Cumpleaños de Mabel', tema: 'gato' }
+    { fecha: '06/03', cierre: 'Que descanses, Gustavo 🎂 ¡Feliz cumple!', texto: '🎂 ¡Feliz cumpleaños, Gustavo!', listado: '🎂 Cumpleaños de Gustavo', nacimiento: 1981, tema: 'cumple' },
+    { fecha: '18/03', cierre: 'Que descanses, Perla 🎂 ¡Feliz cumple!', texto: '🎂 ¡Feliz cumpleaños, Perla!', listado: '🎂 Cumpleaños de Perla', nacimiento: 1984, tema: 'cumple' },
+    { fecha: '13/04', cierre: 'Que descanses, Lolo 🎂 ¡Feliz cumple!', texto: '🎂 ¡Feliz cumpleaños, Lorenzo!', listado: '🎂 Cumpleaños de Lorenzo', nacimiento: 2014, tema: 'cumple' },
+    { fecha: '13/08', cierre: 'Que descanses, Lolo 🤚 Feliz día del zurdo', texto: '🤚 ¡Feliz Día del Zurdo, Lorenzo!', listado: '🤚 Día del Zurdo', tema: 'estrella' },
+    { fecha: '13/11', cierre: 'Feliz aniversario, Perla y Gustavo 💍', texto: '💍 ¡Feliz aniversario de casados, Perla y Gustavo!', listado: '💍 Aniversario de casados', tema: 'amor' },
+    { fecha: '17/12', cierre: 'Que descanses, Perla 📊 Feliz día', texto: '📊 ¡Feliz Día del Contador, Perla!', listado: '📊 Día del Contador', tema: 'estrella' },
+    { fecha: '26/12', cierre: 'Feliz aniversario de novios ❤️', texto: '❤️ ¡Feliz aniversario de novios, Perla y Gustavo!', listado: '❤️ Aniversario de novios', tema: 'amor' },
+    { fecha: '25/12', cierre: 'Feliz Navidad, familia 🎄', texto: '🎄 ¡Feliz Navidad para toda la familia!', listado: '🎄 Navidad', tema: 'navidad' },
+    { fecha: '01/01', cierre: 'Que este año sea hermoso 🎉', texto: '🎉 ¡Feliz Año Nuevo!', listado: '🎉 Año Nuevo', tema: 'anionuevo' },
+    { fecha: '20/02', cierre: 'Buenas noches, Wall-e y Mabel 🐾', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '08/08', cierre: 'Buenas noches, Wall-e y Mabel 🐾', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '29/10', cierre: 'Buenas noches, Wall-e y Mabel 🐾', texto: '🐱 ¡Feliz Día del Gato, Wall-e y Mabel!', listado: '🐱 Día del Gato', tema: 'gato' },
+    { fecha: '25/03', cierre: 'Feliz cumple, Wall-e 🐾', texto: '🐱 ¡Feliz cumpleaños, Wall-e!', listado: '🐱 Cumpleaños de Wall-e', tema: 'gato' },
+    { fecha: '28/03', cierre: 'Feliz cumple, Mabel 🐾', texto: '🐱 ¡Feliz cumpleaños, Mabel!', listado: '🐱 Cumpleaños de Mabel', tema: 'gato' }
   ];
 
   // " · cumple 46" para los listados (almanaque, "lo que se viene")
@@ -3545,9 +3551,9 @@
 
   function fechasMoviles(anio) {
     const lista = [
-      { fecha: ddmm(domingoNumero(anio, 6, 3)), texto: '👨 ¡Feliz Día del Padre, Gustavo!', listado: '👨 Día del Padre', grupo: 1, tema: 'estrella' },
-      { fecha: ddmm(domingoNumero(anio, 10, 3)), texto: '👩 ¡Feliz Día de la Madre, Perla!', listado: '👩 Día de la Madre', grupo: 1, tema: 'amor' },
-      { fecha: ddmm(domingoNumero(anio, 8, 3)), texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', listado: '🧒 Día del Niño', grupo: 1, tema: 'cumple' },
+      { fecha: ddmm(domingoNumero(anio, 6, 3)), cierre: 'Que descanses, papá 💙 Te amamos', texto: '👨 ¡Feliz Día del Padre, Gustavo!', listado: '👨 Día del Padre', grupo: 1, tema: 'estrella' },
+      { fecha: ddmm(domingoNumero(anio, 10, 3)), cierre: 'Que descanses, mamá 💕 Te amamos', texto: '👩 ¡Feliz Día de la Madre, Perla!', listado: '👩 Día de la Madre', grupo: 1, tema: 'amor' },
+      { fecha: ddmm(domingoNumero(anio, 8, 3)), cierre: 'Que descanses, Lolo ⭐ Te amamos', texto: '🧒 ¡Feliz Día del Niño, Lorenzo!', listado: '🧒 Día del Niño', grupo: 1, tema: 'cumple' },
       { fecha: ddmm(domingoNumero(anio, 11, 2)), texto: '👵 Día de la Abuela', listado: '👵 Día de la Abuela', grupo: 2 }
     ];
 
@@ -3557,7 +3563,7 @@
     if (feriadosDelAnio.some((f) => f.fecha === ymd(lunesPlastico))) {
       fechaPlastico = new Date(lunesPlastico.getTime() + 86400000);
     }
-    lista.push({ fecha: ddmm(fechaPlastico), texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', listado: '🏭 Día del Plástico', grupo: 1, tema: 'estrella' });
+    lista.push({ fecha: ddmm(fechaPlastico), cierre: 'Que descanses, Gustavo 🏭 Feliz día', texto: '🏭 ¡Feliz Día del Plástico, Gustavo!', listado: '🏭 Día del Plástico', grupo: 1, tema: 'estrella' });
 
     return lista;
   }
@@ -4687,6 +4693,9 @@
 
   function renderDespedida() {
     despedidaUltimoRender = Date.now();
+    // si HOY es un día de la familia, la despedida cierra con su saludo y su animación
+    const fiestaHoy = fechasDeHoy().grupo1[0] || null;
+    armarFiestaDespedida(fiestaHoy ? (fiestaHoy.tema || 'estrella') : null);
     const t = maniana();
     const tYMD = ymd(t);
     const { grupo1, grupo2 } = fechasDeFecha(t);
@@ -4696,7 +4705,7 @@
     const nombreDia = weekdays[t.getDay()];
 
     let izq = `
-      <div class="desp-hola">Buenas noches 🌙</div>
+      <div class="desp-hola ${fiestaHoy ? 'es-fiesta' : ''}">${fiestaHoy ? (fiestaHoy.cierre || 'Buenas noches 🌙') : 'Buenas noches 🌙'}</div>
       <div class="desp-manana">Mañana es <span>${nombreDia} ${t.getDate()}</span></div>
       ${feriado ? `<div class="desp-feriado">🇦🇷 Feriado: ${feriado.texto.replace(/^🇦🇷\s*/, '')}</div>` : ''}`;
 
@@ -4758,6 +4767,33 @@
 
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     document.getElementById('despFrase').textContent = frasesDeDormir[dayOfYear % frasesDeDormir.length];
+  }
+
+  // misma animación del día (corazones, confeti, nieve…) pero en la despedida, más lenta
+  let temaFiestaDespedida = undefined;
+  function armarFiestaDespedida(tema) {
+    if (tema === temaFiestaDespedida) return;
+    temaFiestaDespedida = tema;
+    const capa = document.getElementById('despFiesta');
+    capa.innerHTML = '';
+    if (!tema) return;
+    const cfg = temasFiesta[tema] || temasFiesta.estrella;
+    for (let i = 0; i < 16; i++) {
+      const el = document.createElement('span');
+      el.className = 'fiesta-p';
+      el.style.left = ((i * 6.3 + (i % 3) * 2.1) % 100) + '%';
+      el.style.animationDuration = (20 + (i * 7) % 12) + 's'; // casi el doble de lento que de día
+      el.style.animationDelay = (-((i * 3.1) % 24)) + 's';
+      if (cfg.confeti) {
+        el.classList.add('confeti');
+        el.style.background = coloresConfeti[i % coloresConfeti.length];
+      } else {
+        el.textContent = cfg.glifos[i % cfg.glifos.length];
+        el.style.fontSize = (16 + (i * 5) % 14) + 'px';
+        if (cfg.nieve) el.classList.add('nieve');
+      }
+      capa.appendChild(el);
+    }
   }
 
   function renderDespedidaSiVisible() {
