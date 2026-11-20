@@ -2899,11 +2899,20 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const ev = data.events && data.events[0];
-      if (!ev) throw new Error('Sin evento');
-
       // strTimestamp viene en UTC; lo pasamos a hora Argentina para que
       // no importe en qué país se juegue el partido
-      const utcDate = new Date(ev.strTimestamp + 'Z');
+      const utcDate = ev ? new Date(ev.strTimestamp + 'Z') : null;
+
+      // Sin próximo partido (terminó el torneo, receso) — o la API devolvió uno que ya
+      // se jugó: es una respuesta VÁLIDA, no un error. Borramos lo guardado para que
+      // no quede el último partido como si fuera el próximo.
+      if (!ev || !utcDate || isNaN(utcDate) || utcDate.getTime() < Date.now() - 1000 * 60 * 60 * 3) {
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(cacheDataKey);
+        matchInfo[teamId] = null;
+        return { text: null, kickoffMs: null };
+      }
+
       const argDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
       const dayName = weekShortEs2[argDate.getDay()];
       const dd = String(argDate.getDate()).padStart(2, '0');
@@ -2935,8 +2944,15 @@
       console.warn('Fútbol sin conexión, uso último dato guardado:', teamLabel, err.message);
       const cached = localStorage.getItem(cacheKey);
       const cachedData = localStorage.getItem(cacheDataKey);
-      if (cachedData) matchInfo[teamId] = JSON.parse(cachedData);
-      return { text: cached || null, kickoffMs: null };
+      let guardado = null;
+      try { guardado = cachedData ? JSON.parse(cachedData) : null; } catch (e) {}
+      // lo guardado solo sirve si ese partido todavía no se jugó
+      if (guardado && guardado.kickoffMs && guardado.kickoffMs > Date.now() - 1000 * 60 * 60 * 3) {
+        matchInfo[teamId] = guardado;
+        return { text: cached || null, kickoffMs: guardado.kickoffMs };
+      }
+      matchInfo[teamId] = null;
+      return { text: null, kickoffMs: null };
     }
   }
 
@@ -3252,13 +3268,31 @@
       const card = document.createElement('div');
       card.className = 'full-postit sports-postit';
 
+      const detalle = lastResultDetail[id];
+
       if (!info) {
-        card.innerHTML = `<div class="sports-league">Sin datos por ahora</div>`;
+        const nombre = id === '135173' ? 'San Lorenzo' : 'Real Madrid';
+        card.innerHTML = `
+          <div class="sports-league">${nombre}</div>
+          ${detalle && detalle.teamBadge ? `<div class="sports-teams"><img class="sports-badge" src="${detalle.teamBadge}" onerror="this.style.display='none'"></div>` : ''}
+          <div class="sports-matchup">Sin partidos programados</div>
+          <div class="sports-venue" style="margin-top:10px">Cuando haya fecha nueva, aparece sola acá</div>
+          ${detalle ? `
+            <div class="sports-scoreline">
+              <div class="scoreline-label">Último partido</div>
+              <div class="scoreline-row">
+                <img class="scoreline-badge" src="${detalle.teamBadge || ''}" onerror="this.style.display='none'">
+                <span class="scoreline-num">${detalle.teamScore}</span>
+                <span class="scoreline-dash">-</span>
+                <span class="scoreline-num">${detalle.rivalScore}</span>
+                <img class="scoreline-badge" src="${detalle.rivalBadge || ''}" onerror="this.style.display='none'">
+              </div>
+              <div class="scoreline-rival">${detalle.resultEmoji} vs ${detalle.rival}</div>
+            </div>` : (lastResult ? `<div class="sports-lastresult">${lastResult}</div>` : '')}
+        `;
         row.appendChild(card);
         return;
       }
-
-      const detalle = lastResultDetail[id];
       const marcadorHtml = detalle ? `
         <div class="sports-scoreline">
           <div class="scoreline-label">Último partido</div>
@@ -3346,7 +3380,7 @@
     }
 
     const soloSaludos = parts.length && !teamIds.some((id) => matchInfo[id]);
-    if ((!parts.length || soloSaludos) && sportsItems.length) {
+    if ((!parts.length || soloSaludos) && sportsItems.length && teamIds.some((id) => matchInfo[id])) {
       // respaldo si todavía no cargó matchInfo pero sí el texto simple
       el.innerHTML = [...parts, ...sportsItems].join('     •     ') + '     •     ';
       return;
